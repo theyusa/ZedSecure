@@ -55,7 +55,7 @@ Telegram Channel: https://t.me/CluvexStudio
 
 - **Flutter**: 3.9.0+ (Dart 3.9.0+)
 - **Kotlin**: 2.1.0
-- **Xray-core**: 1.8.24
+- **Xray-core**: 26.1.23
 - **FluxTun**: Custom Rust TUN library
 - **Gradle**: 8.14 with AGP 8.11.1
 - **Target SDK**: Android 16 (API 36)
