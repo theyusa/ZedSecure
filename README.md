@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)
 ![Flutter](https://img.shields.io/badge/Flutter-3.38.4-02569B?logo=flutter)
 ![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
@@ -20,13 +20,22 @@ Telegram Channel: https://t.me/CluvexStudio
 ## Features
 
 ### Core
-- VMess, VLESS, Trojan, Shadowsocks protocols
-- TCP, WebSocket, HTTP/2, gRPC, QUIC, XHTTP, HTTPUpgrade transports
-- Real-time upload/download statistics
-- Concurrent ping testing for all servers
-- Subscription management with auto-update
-- Per-App proxy (Split Tunneling)
-- Custom DNS settings
+- **Protocols**: VMess, VLESS, Trojan, Shadowsocks, Hysteria2, WireGuard, SOCKS, HTTP
+- **Transports**: TCP, WebSocket, HTTP/2, gRPC, QUIC, XHTTP, HTTPUpgrade, mKCP
+- **Security**: TLS, Reality, with fingerprint customization
+- **Statistics**: Real-time upload/download speed and total data
+- **Server Management**: Concurrent ping testing, subscription auto-update
+- **Split Tunneling**: Per-App proxy with system/user apps filter
+- **Configuration**: Full V2Ray JSON viewer/editor, custom config import
+- **Updates**: Auto-check for new releases with skip version option
+
+### Advanced Settings
+- **Mux**: Multiplexing support with concurrency control and xUDP
+- **Fragment**: TLS/Reality fragmentation with custom packets, length, interval
+- **DNS**: Custom remote/domestic DNS servers with FakeDNS support
+- **Routing**: Domain strategy, bypass LAN, custom routing rules
+- **Network**: MTU configuration, VPN interface address selection
+- **Core**: Log level control, sniffing, route-only mode
 
 ### UI/UX
 - iOS-style design with glassmorphism effects
@@ -34,6 +43,8 @@ Telegram Channel: https://t.me/CluvexStudio
 - Ring animation connect button
 - Light/Dark mode support
 - SVG country flags with real location detection
+- Connection latency display with refresh
+- Real-time notification with stats
 
 ### Data Management
 - Backup & Restore configs to JSON
@@ -42,12 +53,13 @@ Telegram Channel: https://t.me/CluvexStudio
 
 ## Tech Stack
 
-- Flutter 3.9.0+ (Dart 3.9.0+)
-- Kotlin 2.2.20
-- Xray-core 1.25.3
-- FluxTun (Custom Rust TUN library)
-- Target SDK: Android 16 (API 36)
-- Min SDK: Android 7.0 (API 24)
+- **Flutter**: 3.9.0+ (Dart 3.9.0+)
+- **Kotlin**: 2.1.0
+- **Xray-core**: 1.8.24
+- **FluxTun**: Custom Rust TUN library
+- **Gradle**: 8.14 with AGP 8.11.1
+- **Target SDK**: Android 16 (API 36)
+- **Min SDK**: Android 7.0 (API 24)
 
 ## Installation
 
@@ -113,15 +125,40 @@ ZedSecure/
 
 ## Supported Protocols
 
-| Protocol | Format |
-|----------|--------|
-| VMess | `vmess://base64-config` |
-| VLESS | `vless://uuid@host:port?params#remark` |
-| Trojan | `trojan://password@host:port?params#remark` |
-| Shadowsocks | `ss://base64(method:password)@host:port#remark` |
+| Protocol | Format | Status |
+|----------|--------|--------|
+| VMess | `vmess://base64-config` | ✅ Full Support |
+| VLESS | `vless://uuid@host:port?params#remark` | ✅ Full Support |
+| Trojan | `trojan://password@host:port?params#remark` | ✅ Full Support |
+| Shadowsocks | `ss://base64(method:password)@host:port#remark` | ✅ Full Support |
+| Hysteria2 | `hysteria2://password@host:port?params#remark` | ✅ Full Support |
+| WireGuard | `wireguard://...` | ✅ Full Support |
+| SOCKS | `socks://user:pass@host:port#remark` | ✅ Full Support |
+| HTTP | `http://user:pass@host:port#remark` | ✅ Full Support |
 
-## What's New in v1.5.0
+## What's New in v1.6.0
 
+### 🆕 New Features
+- **Update Checker System**: Automatically checks for new releases on app start
+- **Full V2Ray Configuration Viewer**: View and edit complete JSON configuration
+- **Custom JSON Import**: Import custom V2Ray configurations directly
+- **Hysteria2 Protocol**: Full support with obfuscation and port hopping
+- **WireGuard Protocol**: Complete implementation with all parameters
+
+### 🔧 Improvements
+- **Config Builder**: DNS and routing rules now match v2rayNG exactly
+- **Per-App Proxy**: Fixed to find all user apps correctly (not just 23)
+- **Connection Latency**: Real-time ping display with manual refresh
+- **Country Detection**: Cloudflare API with multiple fallback endpoints
+- **Notification Design**: iOS-like notification with real-time statistics
+
+### 🐛 Bug Fixes
+- Fixed edit config screen duplicate method error
+- Fixed config name changing issue in Full V2Ray Configuration
+- Improved JSON parsing for Hysteria2 URLs
+- Fixed TLS settings order in stream configuration
+
+### 📝 Previous Updates (v1.5.0)
 - iOS-style UI redesign with glassmorphism
 - Dynamic Island connection status
 - Ring animation connect button
@@ -129,7 +166,6 @@ ZedSecure/
 - Real country detection via Cloudflare
 - FluxTun custom TUN library
 - ARMv7 architecture support
-- Improved socket protection
 
 ## License
 

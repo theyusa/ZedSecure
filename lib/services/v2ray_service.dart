@@ -5,6 +5,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zedsecure/models/v2ray_config.dart';
 import 'package:zedsecure/models/subscription.dart';
+import 'package:zedsecure/models/app_settings.dart';
+import 'package:zedsecure/services/v2ray_config_builder.dart';
+import 'package:zedsecure/services/log_service.dart';
 import 'package:flutter/foundation.dart';
 
 class V2RayService extends ChangeNotifier {
@@ -36,6 +39,7 @@ class V2RayService extends ChangeNotifier {
         notifyListeners();
       },
     );
+    _loadPingCache();
   }
 
   void _handleStatusChange(V2RayStatus status) {
@@ -70,6 +74,47 @@ class V2RayService extends ChangeNotifier {
     }
   }
   
+  Future<void> _loadPingCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cacheJson = prefs.getString('ping_cache');
+      if (cacheJson != null) {
+        final Map<String, dynamic> decoded = jsonDecode(cacheJson);
+        final now = DateTime.now().millisecondsSinceEpoch;
+        decoded.forEach((key, value) {
+          if (value is Map && value['ping'] != null && value['timestamp'] != null) {
+            final timestamp = value['timestamp'] as int;
+            if (now - timestamp < 300000) {
+              _pingCache[key] = value['ping'] as int;
+            }
+          }
+        });
+        debugPrint('Loaded ${_pingCache.length} cached ping results');
+      }
+    } catch (e) {
+      debugPrint('Error loading ping cache: $e');
+    }
+  }
+  
+  Future<void> _savePingCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final Map<String, dynamic> cacheData = {};
+      final now = DateTime.now().millisecondsSinceEpoch;
+      _pingCache.forEach((key, value) {
+        if (value != null && value >= 0) {
+          cacheData[key] = {
+            'ping': value,
+            'timestamp': now,
+          };
+        }
+      });
+      await prefs.setString('ping_cache', jsonEncode(cacheData));
+    } catch (e) {
+      debugPrint('Error saving ping cache: $e');
+    }
+  }
+  
   Future<void> saveDnsSettings(bool enabled, List<String> servers) async {
     _useDns = enabled;
     _customDnsServers = servers;
@@ -82,80 +127,152 @@ class V2RayService extends ChangeNotifier {
   bool get useDns => _useDns;
   List<String> get dnsServers => List.from(_customDnsServers);
   String? get detectedCountryCode => _detectedCountryCode;
+  String? _detectedIP;
+  String? _detectedCity;
+  String? _detectedRegion;
+  String? get detectedIP => _detectedIP;
+  String? get detectedCity => _detectedCity;
+  String? get detectedRegion => _detectedRegion;
 
   Future<String?> detectRealCountry() async {
-    final endpoints = [
+    try {
+      final response = await http.get(
+        Uri.parse('https://speed.cloudflare.com/meta'),
+      ).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        _detectedCountryCode = data['country']?.toString().toUpperCase();
+        _detectedIP = data['clientIp']?.toString();
+        _detectedCity = data['city']?.toString();
+        _detectedRegion = data['region']?.toString();
+        
+        debugPrint('Detected: Country=$_detectedCountryCode, IP=$_detectedIP, City=$_detectedCity, Region=$_detectedRegion');
+        notifyListeners();
+        return _detectedCountryCode;
+      }
+    } catch (e) {
+      debugPrint('Cloudflare meta API failed: $e');
+    }
+    
+    final traceEndpoints = [
+      'https://one.one.one.one/cdn-cgi/trace',
+      'https://1.0.0.1/cdn-cgi/trace',
       'https://cloudflare-dns.com/cdn-cgi/trace',
       'https://cloudflare-eth.com/cdn-cgi/trace',
     ];
     
-    for (final endpoint in endpoints) {
+    for (final endpoint in traceEndpoints) {
       try {
         final response = await http.get(
           Uri.parse(endpoint),
-        ).timeout(const Duration(seconds: 5));
+        ).timeout(const Duration(seconds: 8));
         
         if (response.statusCode == 200) {
           final lines = response.body.split('\n');
+          String? country;
+          String? ip;
+          
           for (final line in lines) {
             if (line.startsWith('loc=')) {
-              final countryCode = line.substring(4).trim();
-              if (countryCode.length == 2) {
-                _detectedCountryCode = countryCode.toUpperCase();
-                debugPrint('Detected country: $_detectedCountryCode');
-                notifyListeners();
-                return _detectedCountryCode;
-              }
+              country = line.substring(4).trim().toUpperCase();
+            } else if (line.startsWith('ip=')) {
+              ip = line.substring(3).trim();
             }
+          }
+          
+          if (country != null && ip != null) {
+            _detectedCountryCode = country;
+            _detectedIP = ip;
+            debugPrint('Detected from trace: Country=$_detectedCountryCode, IP=$_detectedIP from $endpoint');
+            notifyListeners();
+            return _detectedCountryCode;
           }
         }
       } catch (e) {
         debugPrint('Cloudflare trace failed ($endpoint): $e');
+        await Future.delayed(const Duration(milliseconds: 300));
         continue;
       }
     }
     
+    debugPrint('All country detection endpoints failed');
     return null;
   }
 
-  Future<bool> connect(V2RayConfig config) async {
+  Future<bool> connect(V2RayConfig config, {AppSettings? settings}) async {
+    final logger = LogService();
     try {
-      await initialize();
-
-      V2RayURL parser = V2ray.parseFromURL(config.fullConfig);
+      logger.log('=== V2Ray Connection Start ===', level: LogLevel.info);
+      logger.log('Config: ${config.remark}', level: LogLevel.info);
+      logger.log('Address: ${config.address}:${config.port}', level: LogLevel.info);
+      logger.log('Protocol: ${config.configType}', level: LogLevel.info);
       
-      if (_useDns && _customDnsServers.isNotEmpty) {
-        parser.dns = {
-          'servers': _customDnsServers
-        };
-      }
-
-      bool hasPermission = await _flutterV2ray.requestPermission();
-      if (!hasPermission) {
-        return false;
-      }
+      await initialize();
+      logger.log('V2Ray initialized', level: LogLevel.info);
 
       final prefs = await SharedPreferences.getInstance();
-      final blockedAppsList = prefs.getStringList('blocked_apps');
+      
+      AppSettings appSettings;
+      if (settings != null) {
+        appSettings = settings;
+      } else {
+        final settingsJson = prefs.getString('app_settings');
+        if (settingsJson != null) {
+          appSettings = AppSettings.fromJson(jsonDecode(settingsJson));
+        } else {
+          appSettings = AppSettings();
+        }
+      }
+      
+      logger.log('App Settings loaded: proxyOnly=${appSettings.proxyOnlyMode}, mux=${appSettings.muxSettings.enabled}', level: LogLevel.info);
 
-      await _flutterV2ray.startV2Ray(
-        remark: parser.remark,
-        config: parser.getFullConfiguration(),
+      final blockedAppsList = prefs.getStringList('blocked_apps');
+      logger.log('Blocked apps count: ${blockedAppsList?.length ?? 0}', level: LogLevel.info);
+
+      logger.log('Building full config...', level: LogLevel.info);
+      final fullConfig = V2RayConfigBuilder.buildFullConfig(
+        serverConfig: config,
+        settings: appSettings,
         blockedApps: blockedAppsList,
-        proxyOnly: false,
+      );
+
+      final configJson = jsonEncode(fullConfig);
+      logger.log('Config JSON generated: ${configJson.length} bytes', level: LogLevel.info);
+
+      logger.log('Requesting VPN permission...', level: LogLevel.info);
+      bool hasPermission = await _flutterV2ray.requestPermission();
+      if (!hasPermission) {
+        logger.log('VPN permission denied', level: LogLevel.error);
+        return false;
+      }
+      logger.log('VPN permission granted', level: LogLevel.info);
+
+      logger.log('Starting V2Ray core...', level: LogLevel.info);
+      await _flutterV2ray.startV2Ray(
+        remark: config.remark,
+        config: configJson,
+        blockedApps: blockedAppsList,
+        proxyOnly: appSettings.proxyOnlyMode,
         notificationDisconnectButtonName: "DISCONNECT",
       );
+      logger.log('V2Ray core start command sent', level: LogLevel.info);
 
       _activeConfig = config;
       await _saveActiveConfig(config);
       
+      logger.log('Detecting country...', level: LogLevel.info);
       detectRealCountry();
       
       notifyListeners();
 
+      logger.log('=== V2Ray Connection Success ===', level: LogLevel.info);
       return true;
-    } catch (e) {
-      debugPrint('Error connecting to V2Ray: $e');
+    } catch (e, stackTrace) {
+      logger.log('=== V2Ray Connection Error ===', level: LogLevel.error);
+      logger.log('Error: $e', level: LogLevel.error);
+      logger.log('Stack trace: $stackTrace', level: LogLevel.error);
       return false;
     }
   }
@@ -165,6 +282,9 @@ class V2RayService extends ChangeNotifier {
       await _flutterV2ray.stopV2Ray();
       _activeConfig = null;
       _detectedCountryCode = null;
+      _detectedIP = null;
+      _detectedCity = null;
+      _detectedRegion = null;
       await _clearActiveConfig();
       notifyListeners();
     } catch (e) {
@@ -198,9 +318,24 @@ class V2RayService extends ChangeNotifier {
       try {
         await initialize();
         
-        final parser = V2ray.parseFromURL(config.fullConfig);
+        final prefs = await SharedPreferences.getInstance();
+        final settingsJson = prefs.getString('app_settings');
+        AppSettings appSettings;
+        if (settingsJson != null) {
+          appSettings = AppSettings.fromJson(jsonDecode(settingsJson));
+        } else {
+          appSettings = AppSettings();
+        }
+
+        final fullConfig = V2RayConfigBuilder.buildFullConfig(
+          serverConfig: config,
+          settings: appSettings,
+        );
+
+        final configJson = jsonEncode(fullConfig);
+        
         final delay = await _flutterV2ray
-            .getServerDelay(config: parser.getFullConfiguration())
+            .getServerDelay(config: configJson)
             .timeout(
               const Duration(seconds: 5),
               onTimeout: () => -1,
@@ -209,6 +344,7 @@ class V2RayService extends ChangeNotifier {
         if (delay >= 0 && delay < 10000) {
           _pingCache[hostKey] = delay;
           _pingCache[configId] = delay;
+          _savePingCache();
         } else {
           _pingCache[hostKey] = -1;
           _pingCache[configId] = -1;
@@ -233,6 +369,7 @@ class V2RayService extends ChangeNotifier {
     } else {
       _pingCache.clear();
     }
+    _savePingCache();
   }
 
   Future<List<V2RayConfig>> parseSubscriptionUrl(String url) async {
@@ -322,7 +459,11 @@ class V2RayService extends ChangeNotifier {
         if (line.startsWith('vmess://') ||
             line.startsWith('vless://') ||
             line.startsWith('trojan://') ||
-            line.startsWith('ss://')) {
+            line.startsWith('ss://') ||
+            line.startsWith('hysteria2://') ||
+            line.startsWith('hy2://') ||
+            line.startsWith('wireguard://') ||
+            line.startsWith('wg://')) {
           V2RayURL parser = V2ray.parseFromURL(line);
           String configType = '';
 
@@ -334,6 +475,10 @@ class V2RayService extends ChangeNotifier {
             configType = 'shadowsocks';
           } else if (line.startsWith('trojan://')) {
             configType = 'trojan';
+          } else if (line.startsWith('hysteria2://') || line.startsWith('hy2://')) {
+            configType = 'hysteria2';
+          } else if (line.startsWith('wireguard://') || line.startsWith('wg://')) {
+            configType = 'wireguard';
           }
 
           String address = parser.address;
@@ -437,6 +582,20 @@ class V2RayService extends ChangeNotifier {
     final String? configJson = prefs.getString('selected_config');
     if (configJson == null) return null;
     return V2RayConfig.fromJson(jsonDecode(configJson));
+  }
+
+  Future<int?> getConnectedServerDelay() async {
+    try {
+      final delay = await _flutterV2ray.getConnectedServerDelay();
+      return delay >= 0 ? delay : null;
+    } catch (e) {
+      debugPrint('Error getting connected server delay: $e');
+      return null;
+    }
+  }
+
+  int? getCachedPing(String configId) {
+    return _pingCache[configId];
   }
 
   Future<void> _tryRestoreActiveConfig() async {

@@ -6,6 +6,8 @@ import 'package:zedsecure/services/v2ray_service.dart';
 import 'package:zedsecure/services/theme_service.dart';
 import 'package:zedsecure/theme/app_theme.dart';
 import 'package:zedsecure/screens/per_app_proxy_screen.dart';
+import 'package:zedsecure/screens/advanced_settings_screen.dart';
+import 'package:zedsecure/screens/about_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'dart:convert';
@@ -117,19 +119,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 20),
             _buildSection('Network', [
               _buildNavigationTile(
+                'Advanced Settings',
+                'Mux, Fragment, DNS & more',
+                CupertinoIcons.slider_horizontal_3,
+                const Color(0xFF5856D6),
+                () => Navigator.push(
+                  context,
+                  CupertinoPageRoute(builder: (_) => const AdvancedSettingsScreen()),
+                ),
+                isDark,
+              ),
+              _buildNavigationTile(
                 'Per-App Proxy',
                 'Choose which apps use VPN',
                 CupertinoIcons.app_badge,
                 AppTheme.primaryBlue,
                 () => Navigator.push(context, CupertinoPageRoute(builder: (_) => const PerAppProxyScreen())),
-                isDark,
-              ),
-              _buildNavigationTile(
-                'DNS Settings',
-                'Configure custom DNS servers',
-                CupertinoIcons.globe,
-                Colors.purple,
-                _showDnsDialog,
                 isDark,
               ),
             ], isDark),
@@ -314,57 +319,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         Container(
-          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
           ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('App Name', style: TextStyle(color: AppTheme.systemGray)),
-                  Text('ZedSecure', style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Version', style: TextStyle(color: AppTheme.systemGray)),
-                  Text('1.5.0', style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: AppTheme.primaryBlue.withOpacity(0.1),
-                ),
-                child: Column(
-                  children: [
-                    Text('Developed by CluvexStudio', style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black)),
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () => _copyToClipboard('https://github.com/CluvexStudio/ZedSecure'),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(CupertinoIcons.link, size: 14, color: AppTheme.primaryBlue),
-                          const SizedBox(width: 6),
-                          Text(
-                            'github.com/CluvexStudio/ZedSecure',
-                            style: TextStyle(color: AppTheme.primaryBlue, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          child: _buildNavigationTile(
+            'About ZedSecure',
+            'Version 1.6.0 • Build 2026',
+            CupertinoIcons.info_circle,
+            AppTheme.primaryBlue,
+            () => Navigator.push(
+              context,
+              CupertinoPageRoute(builder: (_) => const AboutScreen()),
+            ),
+            isDark,
           ),
         ),
       ],
@@ -534,57 +502,5 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       _showSnackBar('Restore Failed', e.toString());
     }
-  }
-
-  Future<void> _showDnsDialog() async {
-    final service = Provider.of<V2RayService>(context, listen: false);
-    bool useDns = service.useDns;
-    List<String> dnsServers = service.dnsServers;
-    final dns1Controller = TextEditingController(text: dnsServers.isNotEmpty ? dnsServers[0] : '1.1.1.1');
-    final dns2Controller = TextEditingController(text: dnsServers.length > 1 ? dnsServers[1] : '1.0.0.1');
-
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => CupertinoAlertDialog(
-          title: const Text('DNS Settings'),
-          content: Column(
-            children: [
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  CupertinoSwitch(value: useDns, onChanged: (v) => setState(() => useDns = v)),
-                  const SizedBox(width: 8),
-                  const Text('Use Custom DNS'),
-                ],
-              ),
-              if (useDns) ...[
-                const SizedBox(height: 12),
-                CupertinoTextField(controller: dns1Controller, placeholder: 'Primary DNS', padding: const EdgeInsets.all(12)),
-                const SizedBox(height: 8),
-                CupertinoTextField(controller: dns2Controller, placeholder: 'Secondary DNS', padding: const EdgeInsets.all(12)),
-              ],
-            ],
-          ),
-          actions: [
-            CupertinoDialogAction(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            CupertinoDialogAction(
-              onPressed: () async {
-                final servers = <String>[];
-                if (dns1Controller.text.isNotEmpty) servers.add(dns1Controller.text.trim());
-                if (dns2Controller.text.isNotEmpty) servers.add(dns2Controller.text.trim());
-                if (servers.isEmpty) servers.addAll(['1.1.1.1', '1.0.0.1']);
-                await service.saveDnsSettings(useDns, servers);
-                Navigator.pop(context);
-                _showSnackBar('DNS Settings Saved', 'Changes will apply on next connection');
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
-    );
-    dns1Controller.dispose();
-    dns2Controller.dispose();
   }
 }

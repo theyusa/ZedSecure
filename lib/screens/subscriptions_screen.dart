@@ -139,16 +139,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
       children: [
-        if (!_isSuggestedActive && _suggestedSubscription != null) ...[
-          _buildSectionHeader('Suggested', CupertinoIcons.star_fill, Colors.orange, isDark),
-          _buildSuggestedCard(_suggestedSubscription!, isDark),
-          const SizedBox(height: 24),
-        ],
         if (_subscriptions.isNotEmpty) ...[
           _buildSectionHeader('My Subscriptions', CupertinoIcons.cloud_fill, AppTheme.primaryBlue, isDark),
           ..._subscriptions.map((sub) => _buildSubscriptionCard(sub, isDark)),
         ],
-        if (_subscriptions.isEmpty && _isSuggestedActive)
+        if (_subscriptions.isEmpty)
           _buildEmptyState(isDark),
       ],
     );
@@ -340,41 +335,123 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   Future<void> _showAddSubscriptionDialog() async {
     final nameController = TextEditingController();
     final urlController = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    showCupertinoDialog(
+    showDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Add Subscription'),
-        content: Column(
-          children: [
-            const SizedBox(height: 16),
-            CupertinoTextField(
-              controller: nameController,
-              placeholder: 'Name',
-              padding: const EdgeInsets.all(12),
-            ),
-            const SizedBox(height: 12),
-            CupertinoTextField(
-              controller: urlController,
-              placeholder: 'URL (https://...)',
-              padding: const EdgeInsets.all(12),
-            ),
-          ],
+      builder: (context) => Dialog(
+        backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(CupertinoIcons.add_circled_solid, color: AppTheme.primaryBlue, size: 28),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Add Subscription',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Name',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: nameController,
+                placeholder: 'My Subscription',
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Subscription URL',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: urlController,
+                placeholder: 'https://example.com/subscription',
+                padding: const EdgeInsets.all(14),
+                keyboardType: TextInputType.url,
+                maxLines: 3,
+                minLines: 1,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: CupertinoButton(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      color: isDark ? Colors.white12 : Colors.black12,
+                      borderRadius: BorderRadius.circular(12),
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: CupertinoButton(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      color: AppTheme.primaryBlue,
+                      borderRadius: BorderRadius.circular(12),
+                      onPressed: () async {
+                        if (nameController.text.isEmpty || urlController.text.isEmpty) return;
+                        Navigator.pop(context);
+                        await _addSubscription(nameController.text, urlController.text);
+                      },
+                      child: const Text(
+                        'Add',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          CupertinoDialogAction(
-            onPressed: () async {
-              if (nameController.text.isEmpty || urlController.text.isEmpty) return;
-              Navigator.pop(context);
-              await _addSubscription(nameController.text, urlController.text);
-            },
-            child: const Text('Add'),
-          ),
-        ],
       ),
     );
   }

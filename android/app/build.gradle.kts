@@ -22,8 +22,8 @@ android {
         applicationId = "com.zedsecure.vpn"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.5.0"
+        versionCode = 7
+        versionName = "1.6.0"
 
         manifestPlaceholders.put("io.flutter.embedding.android.EnableImpeller", "false")
     }
@@ -66,4 +66,5 @@ flutter {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation(files("../../local_packages/flutter_v2ray_client/android/libs/libv2ray.aar"))
 }

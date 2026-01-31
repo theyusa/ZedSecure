@@ -7,6 +7,8 @@ import 'package:flutter_v2ray_client/url/trojan.dart';
 import 'package:flutter_v2ray_client/url/url.dart';
 import 'package:flutter_v2ray_client/url/vless.dart';
 import 'package:flutter_v2ray_client/url/vmess.dart';
+import 'package:flutter_v2ray_client/url/hysteria2.dart';
+import 'package:flutter_v2ray_client/url/wireguard.dart';
 
 import 'flutter_v2ray_platform_interface.dart';
 import 'model/v2ray_status.dart';
@@ -142,6 +144,12 @@ class V2ray {
         return ShadowSocksURL(url: url);
       case 'socks':
         return SocksURL(url: url);
+      case 'hysteria2':
+      case 'hy2':
+        return Hysteria2URL(url: url);
+      case 'wireguard':
+      case 'wg':
+        return WireGuardURL(url: url);
       default:
         throw ArgumentError('url is invalid');
     }

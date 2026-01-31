@@ -29,33 +29,33 @@ class AppListMethodChannel(private val context: Context) : MethodCallHandler {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val packageManager = context.packageManager
-                        val installedApps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+                        val installedPackages = packageManager.getInstalledPackages(PackageManager.GET_PERMISSIONS)
                         
                         val appList = mutableListOf<Map<String, Any>>()
                         
-                        for (appInfo in installedApps) {
-                            val isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-                            
-                            if (isSystemApp) {
-                                if ((appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0) {
-                                    val launchIntent = packageManager.getLaunchIntentForPackage(appInfo.packageName)
-                                    if (launchIntent == null) {
-                                        continue
-                                    }
-                                }
+                        for (pkg in installedPackages) {
+                            try {
+                                val appInfo = pkg.applicationInfo ?: continue
+                                val isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                                val isUpdatedSystemApp = (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                                
+                                val appName = packageManager.getApplicationLabel(appInfo).toString()
+                                val packageName = appInfo.packageName
+                                
+                                appList.add(mapOf(
+                                    "name" to appName,
+                                    "packageName" to packageName,
+                                    "isSystemApp" to (isSystemApp && !isUpdatedSystemApp)
+                                ))
+                            } catch (e: Exception) {
+                                continue
                             }
-                            
-                            val appName = packageManager.getApplicationLabel(appInfo).toString()
-                            val packageName = appInfo.packageName
-                            
-                            appList.add(mapOf(
-                                "name" to appName,
-                                "packageName" to packageName,
-                                "isSystemApp" to isSystemApp
-                            ))
                         }
                         
-                        val sortedAppList = appList.sortedBy { (it["name"] as? String)?.lowercase() ?: "" }
+                        val sortedAppList = appList.sortedWith(
+                            compareBy<Map<String, Any>> { it["isSystemApp"] as Boolean }
+                                .thenBy { (it["name"] as? String)?.lowercase() ?: "" }
+                        )
                         
                         withContext(Dispatchers.Main) {
                             result.success(sortedAppList)

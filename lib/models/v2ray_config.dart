@@ -85,6 +85,13 @@ class V2RayConfig {
         return 'Trojan';
       case 'shadowsocks':
         return 'Shadowsocks';
+      case 'hysteria':
+      case 'hysteria2':
+        return 'Hysteria2';
+      case 'socks':
+        return 'SOCKS';
+      case 'http':
+        return 'HTTP';
       default:
         return configType.toUpperCase();
     }

@@ -67,6 +67,14 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
           app['packageName'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
   }
+  
+  List<Map<String, dynamic>> get _userApps {
+    return _filteredApps.where((app) => !(app['isSystemApp'] as bool)).toList();
+  }
+  
+  List<Map<String, dynamic>> get _systemApps {
+    return _filteredApps.where((app) => app['isSystemApp'] as bool).toList();
+  }
 
   void _showSnackBar(String title, String message) {
     if (!mounted) return;
@@ -144,7 +152,7 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      '${_selectedApps.length} selected',
+                      '${_selectedApps.length} of ${_apps.length} apps selected',
                       style: TextStyle(fontSize: 13, color: AppTheme.systemGray),
                     ),
                   ),
@@ -218,6 +226,8 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
     }
     
     final filtered = _filteredApps;
+    final userApps = _userApps;
+    final systemApps = _systemApps;
     
     if (filtered.isEmpty) {
       return Center(
@@ -225,64 +235,97 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
       );
     }
     
-    return ListView.builder(
+    return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        final app = filtered[index];
-        final packageName = app['packageName'] as String;
-        final appName = app['name'] as String;
-        final isSelected = _selectedApps.contains(packageName);
-        
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            title: Text(
-              appName,
+      children: [
+        if (userApps.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'USER APPS (${userApps.length})',
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : Colors.black,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.systemGray,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
-            subtitle: Text(
-              packageName,
-              style: TextStyle(fontSize: 11, color: AppTheme.systemGray),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: CupertinoSwitch(
-              value: isSelected,
-              onChanged: (value) {
-                setState(() {
-                  if (value) {
-                    _selectedApps.add(packageName);
-                  } else {
-                    _selectedApps.remove(packageName);
-                  }
-                });
-              },
-              activeTrackColor: AppTheme.connectedGreen,
-            ),
-            onTap: () {
-              setState(() {
-                if (isSelected) {
-                  _selectedApps.remove(packageName);
-                } else {
-                  _selectedApps.add(packageName);
-                }
-              });
-            },
           ),
-        );
-      },
+          ...userApps.map((app) => _buildAppTile(app, isDark)),
+        ],
+        if (systemApps.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 16, bottom: 8),
+            child: Text(
+              'SYSTEM APPS (${systemApps.length})',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.systemGray,
+              ),
+            ),
+          ),
+          ...systemApps.map((app) => _buildAppTile(app, isDark)),
+        ],
+      ],
+    );
+  }
+  
+  Widget _buildAppTile(Map<String, dynamic> app, bool isDark) {
+    final packageName = app['packageName'] as String;
+    final appName = app['name'] as String;
+    final isSystemApp = app['isSystemApp'] as bool;
+    final isSelected = _selectedApps.contains(packageName);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: isSystemApp 
+            ? Icon(CupertinoIcons.gear_alt, size: 20, color: AppTheme.systemGray)
+            : Icon(CupertinoIcons.app, size: 20, color: AppTheme.primaryBlue),
+        title: Text(
+          appName,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white : Colors.black,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          packageName,
+          style: TextStyle(fontSize: 11, color: AppTheme.systemGray),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: CupertinoSwitch(
+          value: isSelected,
+          onChanged: (value) {
+            setState(() {
+              if (value) {
+                _selectedApps.add(packageName);
+              } else {
+                _selectedApps.remove(packageName);
+              }
+            });
+          },
+          activeTrackColor: AppTheme.connectedGreen,
+        ),
+        onTap: () {
+          setState(() {
+            if (isSelected) {
+              _selectedApps.remove(packageName);
+            } else {
+              _selectedApps.add(packageName);
+            }
+          });
+        },
+      ),
     );
   }
 }

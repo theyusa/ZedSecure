@@ -55,7 +55,7 @@ jobs:
           if [ "${{ github.ref_type }}" == "tag" ]; then
             VERSION="${{ github.ref_name }}"
           else
-            VERSION="v1.5.0"
+            VERSION="v1.6.0"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
@@ -94,16 +94,19 @@ jobs:
             | ARM64-v8a | `ZedSecure-${{ steps.version.outputs.version }}-arm64-v8a.apk` | Modern devices (2015+) - Recommended |
             | ARMv7a | `ZedSecure-${{ steps.version.outputs.version }}-armeabi-v7a.apk` | Older devices |
             
-            ### What's New in v1.5.0
+            ### What's New in v1.6.0
             
-            - iOS-style UI redesign with glassmorphism effects
-            - Dynamic Island connection status display
-            - Ring animation connect button
-            - SVG country flags with real location detection
-            - FluxTun custom TUN library integration
-            - ARMv7 architecture support
-            - Improved socket protection
-            - Real country detection via Cloudflare
+            - **Update Checker System**: Auto-check for new releases on app start
+            - **Full V2Ray Configuration Viewer**: View and edit complete JSON config
+            - **Custom JSON Import**: Import custom V2Ray configurations
+            - **Improved Config Builder**: DNS and routing rules match v2rayNG exactly
+            - **Per-App Proxy Fix**: Now finds all user apps correctly
+            - **Enhanced Notification**: iOS-like design with real-time stats
+            - **Dynamic Island**: Connection status display on home screen
+            - **Connection Latency**: Real-time ping with refresh button
+            - **Country Detection**: Cloudflare API with fallback endpoints
+            - **Hysteria2 & WireGuard**: Full protocol support added
+            - **Bug Fixes**: Edit config screen improvements and stability fixes
             
             ### Installation
             
