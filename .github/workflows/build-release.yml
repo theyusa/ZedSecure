@@ -49,7 +49,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           flutter build apk --release --split-per-abi \
-            --target-platform android-arm,android-arm64,android-x64,android-x86
+            --target-platform android-arm,android-arm64,android-x64
       
       - name: Build Universal APK
         env:
@@ -75,7 +75,6 @@ jobs:
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release-apks/ZedSecure-${{ steps.version.outputs.version }}-arm64-v8a.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-apks/ZedSecure-${{ steps.version.outputs.version }}-armeabi-v7a.apk
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86_64.apk
-          cp build/app/outputs/flutter-apk/app-x86-release.apk release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86.apk
           cp build/app/outputs/flutter-apk/app-release.apk release-apks/ZedSecure-${{ steps.version.outputs.version }}-universal.apk
       
       - name: Upload ARM64 APK
@@ -96,12 +95,6 @@ jobs:
           name: ZedSecure-x86_64
           path: release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86_64.apk
       
-      - name: Upload x86 APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ZedSecure-x86
-          path: release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86.apk
-      
       - name: Upload Universal APK
         uses: actions/upload-artifact@v4
         with:
@@ -116,7 +109,6 @@ jobs:
             release-apks/ZedSecure-${{ steps.version.outputs.version }}-arm64-v8a.apk
             release-apks/ZedSecure-${{ steps.version.outputs.version }}-armeabi-v7a.apk
             release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86_64.apk
-            release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86.apk
             release-apks/ZedSecure-${{ steps.version.outputs.version }}-universal.apk
           body: |
             ## ZedSecure VPN ${{ steps.version.outputs.version }}
@@ -128,7 +120,6 @@ jobs:
             | ARM64-v8a | `ZedSecure-${{ steps.version.outputs.version }}-arm64-v8a.apk` | Modern devices (2015+) - **Recommended** |
             | ARMv7a | `ZedSecure-${{ steps.version.outputs.version }}-armeabi-v7a.apk` | Older devices |
             | x86_64 | `ZedSecure-${{ steps.version.outputs.version }}-x86_64.apk` | Emulators/x86 devices |
-            | x86 | `ZedSecure-${{ steps.version.outputs.version }}-x86.apk` | Old emulators |
             | Universal | `ZedSecure-${{ steps.version.outputs.version }}-universal.apk` | All devices (larger size) |
             
             ### What's New in v1.7.0
