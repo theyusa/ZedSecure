@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
       
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -40,14 +42,22 @@ jobs:
         run: |
           echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
       
-      - name: Build Release APKs
+      - name: Build Release APKs (Split)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           flutter build apk --release --split-per-abi \
-            --target-platform android-arm,android-arm64
+            --target-platform android-arm,android-arm64,android-x64,android-x86
+      
+      - name: Build Universal APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          flutter build apk --release
       
       - name: Get Version
         id: version
@@ -55,7 +65,7 @@ jobs:
           if [ "${{ github.ref_type }}" == "tag" ]; then
             VERSION="${{ github.ref_name }}"
           else
-            VERSION="v1.6.0"
+            VERSION="v1.7.0"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
@@ -64,6 +74,9 @@ jobs:
           mkdir -p release-apks
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release-apks/ZedSecure-${{ steps.version.outputs.version }}-arm64-v8a.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-apks/ZedSecure-${{ steps.version.outputs.version }}-armeabi-v7a.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86_64.apk
+          cp build/app/outputs/flutter-apk/app-x86-release.apk release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86.apk
+          cp build/app/outputs/flutter-apk/app-release.apk release-apks/ZedSecure-${{ steps.version.outputs.version }}-universal.apk
       
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
@@ -77,6 +90,24 @@ jobs:
           name: ZedSecure-armeabi-v7a
           path: release-apks/ZedSecure-${{ steps.version.outputs.version }}-armeabi-v7a.apk
       
+      - name: Upload x86_64 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZedSecure-x86_64
+          path: release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86_64.apk
+      
+      - name: Upload x86 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZedSecure-x86
+          path: release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86.apk
+      
+      - name: Upload Universal APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZedSecure-universal
+          path: release-apks/ZedSecure-${{ steps.version.outputs.version }}-universal.apk
+      
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
@@ -84,6 +115,9 @@ jobs:
           files: |
             release-apks/ZedSecure-${{ steps.version.outputs.version }}-arm64-v8a.apk
             release-apks/ZedSecure-${{ steps.version.outputs.version }}-armeabi-v7a.apk
+            release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86_64.apk
+            release-apks/ZedSecure-${{ steps.version.outputs.version }}-x86.apk
+            release-apks/ZedSecure-${{ steps.version.outputs.version }}-universal.apk
           body: |
             ## ZedSecure VPN ${{ steps.version.outputs.version }}
             
@@ -91,22 +125,33 @@ jobs:
             
             | Architecture | File | Devices |
             |-------------|------|---------|
-            | ARM64-v8a | `ZedSecure-${{ steps.version.outputs.version }}-arm64-v8a.apk` | Modern devices (2015+) - Recommended |
+            | ARM64-v8a | `ZedSecure-${{ steps.version.outputs.version }}-arm64-v8a.apk` | Modern devices (2015+) - **Recommended** |
             | ARMv7a | `ZedSecure-${{ steps.version.outputs.version }}-armeabi-v7a.apk` | Older devices |
+            | x86_64 | `ZedSecure-${{ steps.version.outputs.version }}-x86_64.apk` | Emulators/x86 devices |
+            | x86 | `ZedSecure-${{ steps.version.outputs.version }}-x86.apk` | Old emulators |
+            | Universal | `ZedSecure-${{ steps.version.outputs.version }}-universal.apk` | All devices (larger size) |
             
-            ### What's New in v1.6.0
+            ### What's New in v1.7.0
             
-            - **Update Checker System**: Auto-check for new releases on app start
-            - **Full V2Ray Configuration Viewer**: View and edit complete JSON config
-            - **Custom JSON Import**: Import custom V2Ray configurations
-            - **Improved Config Builder**: DNS and routing rules match v2rayNG exactly
-            - **Per-App Proxy Fix**: Now finds all user apps correctly
-            - **Enhanced Notification**: iOS-like design with real-time stats
-            - **Dynamic Island**: Connection status display on home screen
-            - **Connection Latency**: Real-time ping with refresh button
-            - **Country Detection**: Cloudflare API with fallback endpoints
-            - **Hysteria2 & WireGuard**: Full protocol support added
-            - **Bug Fixes**: Edit config screen improvements and stability fixes
+            #### 🆕 New Features
+            - **HevTun Integration**: Replaced FluxTun with hev-socks5-tunnel for better performance
+            - **Subscription Grouping**: Tab-based navigation for each subscription (like v2rayNG)
+            - **Subscription Info**: Display traffic usage, expiry date, and progress bars
+            - **Auto Select Best Server**: Automatically ping and select the fastest server
+            - **Real Ping Testing**: Uses measureOutboundDelay for accurate latency measurement
+            
+            #### 🔧 Improvements
+            - **Server Organization**: Separate tabs for each subscription with server count
+            - **Traffic Monitoring**: Visual progress bars for subscription data usage
+            - **Expiry Tracking**: Countdown timer for subscription expiration
+            - **Smart Filtering**: Filter servers by subscription in real-time
+            - **Enhanced Ping**: Sequential ping with 200ms delay and 15s timeout
+            
+            #### 🐛 Bug Fixes
+            - Fixed JNI registration for HevTun native library
+            - Improved subscription update logic to replace old configs
+            - Fixed country detection with multiple fallback APIs
+            - Better error handling for subscription parsing
             
             ### Installation
             
@@ -114,6 +159,10 @@ jobs:
             2. Enable "Install from Unknown Sources" in Android settings
             3. Install the APK
             4. Grant VPN and notification permissions
+            
+            ### Acknowledgments
+            
+            - [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel/) - High-performance TUN implementation
             
             ---
             

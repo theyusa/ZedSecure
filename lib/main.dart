@@ -182,14 +182,14 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
 
   Widget _buildGlassTabBar(bool isDark) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 25),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(22),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          height: 70,
+          height: 65,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(22),
             color: isDark 
                 ? Colors.black.withOpacity(0.6)
                 : Colors.white.withOpacity(0.8),
@@ -201,9 +201,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 5),
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 18,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -213,24 +213,25 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
                 animation: _slideIndicatorAnimation,
                 builder: (context, child) {
                   final screenWidth = MediaQuery.of(context).size.width;
-                  final tabWidth = (screenWidth - 80) / 4;
-                  final indicatorWidth = tabWidth * 0.7;
-                  final indicatorHeight = 4.0;
+                  final containerWidth = screenWidth - 32;
+                  final tabWidth = containerWidth / 4;
+                  final indicatorWidth = tabWidth * 0.55;
+                  final indicatorHeight = 3.0;
                   
                   return Positioned(
-                    left: 20 + (_slideIndicatorAnimation.value * tabWidth) + (tabWidth - indicatorWidth) / 2,
-                    bottom: 8,
+                    left: (_slideIndicatorAnimation.value * tabWidth) + (tabWidth - indicatorWidth) / 2,
+                    bottom: 5,
                     child: Container(
                       width: indicatorWidth,
                       height: indicatorHeight,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(1.5),
                         color: AppTheme.primaryBlue,
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primaryBlue.withOpacity(0.5),
-                            blurRadius: 8,
-                            spreadRadius: 1,
+                            color: AppTheme.primaryBlue.withOpacity(0.35),
+                            blurRadius: 5,
+                            spreadRadius: 0.5,
                           ),
                         ],
                       ),
@@ -260,28 +261,29 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
       onTap: () => _onTabTapped(index),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AnimatedScale(
-              scale: isSelected ? 1.15 : 1.0,
+              scale: isSelected ? 1.12 : 1.0,
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutBack,
               child: Icon(
                 icon,
-                size: 24,
+                size: 22,
                 color: isSelected 
                     ? AppTheme.primaryBlue 
                     : (isDark ? Colors.white54 : Colors.black45),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 9.5,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 color: isSelected 
                     ? AppTheme.primaryBlue 

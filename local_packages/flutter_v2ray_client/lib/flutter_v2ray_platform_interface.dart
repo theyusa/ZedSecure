@@ -82,6 +82,10 @@ abstract class FlutterV2rayPlatform extends PlatformInterface {
     throw UnimplementedError('getServerDelay() has not been implemented.');
   }
 
+  Future<int> measureOutboundDelay({required String config, required String url}) {
+    throw UnimplementedError('measureOutboundDelay() has not been implemented.');
+  }
+
   /// Measures the delay to the currently connected V2Ray server.
   /// [url] is the server URL to test.
   /// Returns a [Future] that completes with the delay in milliseconds.

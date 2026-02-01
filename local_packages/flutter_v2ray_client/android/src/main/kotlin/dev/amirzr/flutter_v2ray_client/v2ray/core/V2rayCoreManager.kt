@@ -480,4 +480,13 @@ class V2rayCoreManager private constructor() {
             -1L
         }
     }
+    
+    fun measureV2rayOutboundDelay(config: String, url: String): Long {
+        return try {
+            Libv2ray.measureOutboundDelay(config, url)
+        } catch (e: Exception) {
+            Log.e("measureV2rayOutboundDelay", e.toString())
+            -1L
+        }
+    }
 }

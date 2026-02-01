@@ -113,6 +113,21 @@ class V2ray {
         .getServerDelay(config: config, url: url);
   }
 
+  Future<int> measureOutboundDelay({
+    required String config,
+    String url = 'https://clients3.google.com/generate_204',
+  }) async {
+    try {
+      if (jsonDecode(config) == null) {
+        throw ArgumentError('The provided string is not valid JSON');
+      }
+    } catch (_) {
+      throw ArgumentError('The provided string is not valid JSON');
+    }
+    return FlutterV2rayPlatform.instance
+        .measureOutboundDelay(config: config, url: url);
+  }
+
   /// Measures the delay to the currently connected V2Ray server.
   /// [url] is the server URL to test for delay (default is 'https://clients3.google.com/generate_204').
   /// Returns a [Future] that completes with the delay in milliseconds.

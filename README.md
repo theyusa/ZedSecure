@@ -2,9 +2,8 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.7.0-blue.svg)
 ![Flutter](https://img.shields.io/badge/Flutter-3.38.4-02569B?logo=flutter)
-![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 
 A modern VPN application for Android with V2Ray/Xray protocol support and iOS-style UI design.
@@ -24,7 +23,8 @@ Telegram Channel: https://t.me/CluvexStudio
 - **Transports**: TCP, WebSocket, HTTP/2, gRPC, QUIC, XHTTP, HTTPUpgrade, mKCP
 - **Security**: TLS, Reality, with fingerprint customization
 - **Statistics**: Real-time upload/download speed and total data
-- **Server Management**: Concurrent ping testing, subscription auto-update
+- **Server Management**: Concurrent ping testing, subscription auto-update, auto-select best server
+- **Subscription Grouping**: Organize servers by subscription with tab navigation
 - **Split Tunneling**: Per-App proxy with system/user apps filter
 - **Configuration**: Full V2Ray JSON viewer/editor, custom config import
 - **Updates**: Auto-check for new releases with skip version option
@@ -45,6 +45,7 @@ Telegram Channel: https://t.me/CluvexStudio
 - SVG country flags with real location detection
 - Connection latency display with refresh
 - Real-time notification with stats
+- Subscription traffic & expiry info display
 
 ### Data Management
 - Backup & Restore configs to JSON
@@ -56,7 +57,7 @@ Telegram Channel: https://t.me/CluvexStudio
 - **Flutter**: 3.9.0+ (Dart 3.9.0+)
 - **Kotlin**: 2.1.0
 - **Xray-core**: 26.1.23
-- **FluxTun**: Custom Rust TUN library
+- **HevTun**: [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel/) - High-performance TUN library
 - **Gradle**: 8.14 with AGP 8.11.1
 - **Target SDK**: Android 16 (API 36)
 - **Min SDK**: Android 7.0 (API 24)
@@ -77,29 +78,32 @@ Recommended: `app-arm64-v8a-release.apk` for most modern devices
 ### Prerequisites
 - Flutter SDK 3.9.0+
 - Android SDK 34+
+- Android NDK 29.0.14206865
 - Java JDK 11+
-- Rust toolchain (for FluxTun)
 
-### Steps
+### Quick Build
 
 ```bash
 git clone https://github.com/CluvexStudio/ZedSecure.git
 cd ZedSecure
 flutter pub get
-flutter build apk --release --split-per-abi --target-platform android-arm64
+flutter build apk --release --split-per-abi
 ```
 
 Output: `build/app/outputs/flutter-apk/`
 
-### Building FluxTun (Optional)
+### Building HevTun (Optional)
 
+See [BUILD_HEVTUN.md](BUILD_HEVTUN.md) for detailed instructions.
+
+Quick build:
 ```bash
-cd fluxtun
-cargo build --release --target aarch64-linux-android --lib
-cargo build --release --target armv7-linux-androideabi --lib
-```
+# Windows
+.\compile-hevtun.ps1
 
-Copy `.so` files to `local_packages/flutter_v2ray_client/android/src/main/jniLibs/`
+# Linux/macOS
+./compile-hevtun.sh
+```
 
 ## Project Structure
 
@@ -115,11 +119,16 @@ ZedSecure/
 │   ├── services/
 │   │   ├── v2ray_service.dart
 │   │   └── country_detector.dart
+│   ├── models/
+│   │   ├── v2ray_config.dart
+│   │   └── subscription.dart
 │   └── theme/
 │       └── app_theme.dart
 ├── local_packages/
 │   └── flutter_v2ray_client/
 ├── android/
+│   └── app/
+│       └── src/main/jniLibs/
 └── assets/flags/
 ```
 
@@ -136,36 +145,34 @@ ZedSecure/
 | SOCKS | `socks://user:pass@host:port#remark` | ✅ Full Support |
 | HTTP | `http://user:pass@host:port#remark` | ✅ Full Support |
 
-## What's New in v1.6.0
+## What's New in v1.7.0
 
 ### 🆕 New Features
-- **Update Checker System**: Automatically checks for new releases on app start
-- **Full V2Ray Configuration Viewer**: View and edit complete JSON configuration
-- **Custom JSON Import**: Import custom V2Ray configurations directly
-- **Hysteria2 Protocol**: Full support with obfuscation and port hopping
-- **WireGuard Protocol**: Complete implementation with all parameters
+- **HevTun Integration**: Replaced FluxTun with [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel/) for better performance
+- **Subscription Grouping**: Tab-based navigation for each subscription (like v2rayNG)
+- **Subscription Info**: Display traffic usage, expiry date, and progress bars
+- **Auto Select Best Server**: Automatically ping and select the fastest server
+- **Real Ping Testing**: Uses `measureOutboundDelay` for accurate latency measurement
 
 ### 🔧 Improvements
-- **Config Builder**: DNS and routing rules now match v2rayNG exactly
-- **Per-App Proxy**: Fixed to find all user apps correctly (not just 23)
-- **Connection Latency**: Real-time ping display with manual refresh
-- **Country Detection**: Cloudflare API with multiple fallback endpoints
-- **Notification Design**: iOS-like notification with real-time statistics
+- **Server Organization**: Separate tabs for each subscription with server count
+- **Traffic Monitoring**: Visual progress bars for subscription data usage
+- **Expiry Tracking**: Countdown timer for subscription expiration
+- **Smart Filtering**: Filter servers by subscription in real-time
+- **Enhanced Ping**: Sequential ping with 200ms delay and 15s timeout
 
 ### 🐛 Bug Fixes
-- Fixed edit config screen duplicate method error
-- Fixed config name changing issue in Full V2Ray Configuration
-- Improved JSON parsing for Hysteria2 URLs
-- Fixed TLS settings order in stream configuration
+- Fixed JNI registration for HevTun native library
+- Improved subscription update logic to replace old configs
+- Fixed country detection with multiple fallback APIs
+- Better error handling for subscription parsing
 
-### 📝 Previous Updates (v1.5.0)
-- iOS-style UI redesign with glassmorphism
-- Dynamic Island connection status
-- Ring animation connect button
-- SVG country flags (no emoji)
-- Real country detection via Cloudflare
-- FluxTun custom TUN library
-- ARMv7 architecture support
+### 📝 Previous Updates (v1.6.0)
+- Update Checker System with skip version option
+- Full V2Ray Configuration Viewer and Editor
+- Custom JSON Import support
+- Hysteria2 and WireGuard protocol support
+- Per-App Proxy improvements
 
 ## License
 
@@ -186,6 +193,12 @@ Licensed under GPL-3.0
 3. Commit changes: `git commit -m 'Add NewFeature'`
 4. Push: `git push origin feature/NewFeature`
 5. Open Pull Request
+
+## Acknowledgments
+
+- [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel/) - High-performance TUN implementation
+- Xray-core team for the excellent proxy core
+- Flutter community for amazing packages
 
 ## Disclaimer
 

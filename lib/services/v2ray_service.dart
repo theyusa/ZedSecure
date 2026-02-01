@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_v2ray_client/flutter_v2ray.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -63,6 +64,7 @@ class V2RayService extends ChangeNotifier {
       _isInitialized = true;
       await _loadDnsSettings();
       await _tryRestoreActiveConfig();
+      detectRealCountry();
     }
   }
 
@@ -131,74 +133,179 @@ class V2RayService extends ChangeNotifier {
   String? _detectedIP;
   String? _detectedCity;
   String? _detectedRegion;
+  String? _detectedASN;
   String? get detectedIP => _detectedIP;
   String? get detectedCity => _detectedCity;
   String? get detectedRegion => _detectedRegion;
+  String? get detectedASN => _detectedASN;
 
-  Future<String?> detectRealCountry() async {
-    try {
-      final response = await http.get(
-        Uri.parse('https://speed.cloudflare.com/meta'),
-      ).timeout(const Duration(seconds: 10));
-      
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        
-        _detectedCountryCode = data['country']?.toString().toUpperCase();
-        _detectedIP = data['clientIp']?.toString();
-        _detectedCity = data['city']?.toString();
-        _detectedRegion = data['region']?.toString();
-        
-        debugPrint('Detected: Country=$_detectedCountryCode, IP=$_detectedIP, City=$_detectedCity, Region=$_detectedRegion');
-        notifyListeners();
-        return _detectedCountryCode;
-      }
-    } catch (e) {
-      debugPrint('Cloudflare meta API failed: $e');
-    }
+  Future<String?> detectRealCountry({int maxRetries = 3}) async {
+    debugPrint('🌍 Starting country detection...');
     
-    final traceEndpoints = [
-      'https://one.one.one.one/cdn-cgi/trace',
-      'https://1.0.0.1/cdn-cgi/trace',
-      'https://cloudflare-dns.com/cdn-cgi/trace',
-      'https://cloudflare-eth.com/cdn-cgi/trace',
+    final ipInfoSources = [
+      {
+        'url': 'https://ipwho.is/',
+        'parser': (Map<String, dynamic> data) {
+          return {
+            'country': data['country_code']?.toString().toUpperCase(),
+            'ip': data['ip']?.toString(),
+            'city': data['city']?.toString(),
+            'region': data['region']?.toString(),
+            'asn': data['connection']?['asn']?.toString(),
+            'org': data['connection']?['org']?.toString(),
+          };
+        }
+      },
+      {
+        'url': 'https://api.ip.sb/geoip/',
+        'parser': (Map<String, dynamic> data) {
+          return {
+            'country': data['country_code']?.toString().toUpperCase(),
+            'ip': data['ip']?.toString(),
+            'city': data['city']?.toString(),
+            'region': data['region']?.toString(),
+            'asn': data['asn']?.toString(),
+            'org': data['organization']?.toString(),
+          };
+        }
+      },
+      {
+        'url': 'https://ipapi.co/json/',
+        'parser': (Map<String, dynamic> data) {
+          return {
+            'country': data['country_code']?.toString().toUpperCase(),
+            'ip': data['ip']?.toString(),
+            'city': data['city']?.toString(),
+            'region': data['region']?.toString(),
+            'asn': data['asn']?.toString(),
+            'org': data['org']?.toString(),
+          };
+        }
+      },
+      {
+        'url': 'https://ipinfo.io/json',
+        'parser': (Map<String, dynamic> data) {
+          return {
+            'country': data['country']?.toString().toUpperCase(),
+            'ip': data['ip']?.toString(),
+            'city': data['city']?.toString(),
+            'region': data['region']?.toString(),
+            'asn': null,
+            'org': data['org']?.toString(),
+          };
+        }
+      },
     ];
     
-    for (final endpoint in traceEndpoints) {
-      try {
-        final response = await http.get(
-          Uri.parse(endpoint),
-        ).timeout(const Duration(seconds: 8));
+    HttpClient? httpClient;
+    try {
+      httpClient = HttpClient();
+      
+      if (isConnected) {
+        debugPrint('📱 VPN is connected, using SOCKS proxy for detection...');
+        final prefs = await SharedPreferences.getInstance();
+        final settingsJson = prefs.getString('app_settings');
+        AppSettings appSettings;
+        if (settingsJson != null) {
+          appSettings = AppSettings.fromJson(jsonDecode(settingsJson));
+        } else {
+          appSettings = AppSettings();
+        }
         
-        if (response.statusCode == 200) {
-          final lines = response.body.split('\n');
-          String? country;
-          String? ip;
+        final proxyUrl = 'localhost:${appSettings.socksPort}';
+        debugPrint('🔌 Using SOCKS proxy: $proxyUrl');
+        
+        httpClient.findProxy = (uri) {
+          return 'PROXY $proxyUrl';
+        };
+      } else {
+        debugPrint('📱 VPN not connected, using direct connection');
+        httpClient.findProxy = (uri) {
+          return 'DIRECT';
+        };
+      }
+    } catch (e) {
+      debugPrint('⚠️ HttpClient setup failed: $e');
+      httpClient?.close();
+      httpClient = null;
+    }
+    
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      for (final source in ipInfoSources) {
+        try {
+          debugPrint('📡 Attempt $attempt/$maxRetries with ${source['url']}...');
           
-          for (final line in lines) {
-            if (line.startsWith('loc=')) {
-              country = line.substring(4).trim().toUpperCase();
-            } else if (line.startsWith('ip=')) {
-              ip = line.substring(3).trim();
+          if (httpClient != null) {
+            final uri = Uri.parse(source['url'] as String);
+            final request = await httpClient.getUrl(uri);
+            final response = await request.close().timeout(const Duration(seconds: 10));
+            
+            if (response.statusCode == 200) {
+              final responseBody = await response.transform(utf8.decoder).join();
+              final data = jsonDecode(responseBody) as Map<String, dynamic>;
+              final parser = source['parser'] as Map<String, dynamic> Function(Map<String, dynamic>);
+              final parsed = parser(data);
+              
+              _detectedCountryCode = parsed['country'];
+              _detectedIP = parsed['ip'];
+              _detectedCity = parsed['city'];
+              _detectedRegion = parsed['region'];
+              _detectedASN = parsed['asn'] ?? parsed['org'];
+              
+              if (_detectedCountryCode != null && _detectedIP != null) {
+                debugPrint('✅ Success with ${source['url']}!');
+                debugPrint('   Country=$_detectedCountryCode, IP=$_detectedIP');
+                debugPrint('   City=$_detectedCity, Region=$_detectedRegion, ASN=$_detectedASN');
+                notifyListeners();
+                
+                httpClient.close();
+                return _detectedCountryCode;
+              }
+            } else {
+              debugPrint('❌ HTTP ${response.statusCode} from ${source['url']}');
+            }
+          } else {
+            final response = await http.get(
+              Uri.parse(source['url'] as String),
+            ).timeout(const Duration(seconds: 10));
+            
+            if (response.statusCode == 200) {
+              final data = jsonDecode(response.body) as Map<String, dynamic>;
+              final parser = source['parser'] as Map<String, dynamic> Function(Map<String, dynamic>);
+              final parsed = parser(data);
+              
+              _detectedCountryCode = parsed['country'];
+              _detectedIP = parsed['ip'];
+              _detectedCity = parsed['city'];
+              _detectedRegion = parsed['region'];
+              _detectedASN = parsed['asn'] ?? parsed['org'];
+              
+              if (_detectedCountryCode != null && _detectedIP != null) {
+                debugPrint('✅ Success with ${source['url']}!');
+                debugPrint('   Country=$_detectedCountryCode, IP=$_detectedIP');
+                debugPrint('   City=$_detectedCity, Region=$_detectedRegion, ASN=$_detectedASN');
+                notifyListeners();
+                return _detectedCountryCode;
+              }
+            } else {
+              debugPrint('❌ HTTP ${response.statusCode} from ${source['url']}');
             }
           }
-          
-          if (country != null && ip != null) {
-            _detectedCountryCode = country;
-            _detectedIP = ip;
-            debugPrint('Detected from trace: Country=$_detectedCountryCode, IP=$_detectedIP from $endpoint');
-            notifyListeners();
-            return _detectedCountryCode;
-          }
+        } catch (e) {
+          debugPrint('❌ Failed with ${source['url']}: $e');
+          continue;
         }
-      } catch (e) {
-        debugPrint('Cloudflare trace failed ($endpoint): $e');
-        await Future.delayed(const Duration(milliseconds: 300));
-        continue;
+      }
+      
+      if (attempt < maxRetries) {
+        debugPrint('⏳ Waiting before retry $attempt...');
+        await Future.delayed(Duration(seconds: attempt * 2));
       }
     }
     
-    debugPrint('All country detection endpoints failed');
+    httpClient?.close();
+    
+    debugPrint('❌ All attempts failed with all sources');
     return null;
   }
 
@@ -286,28 +393,30 @@ class V2RayService extends ChangeNotifier {
       _detectedIP = null;
       _detectedCity = null;
       _detectedRegion = null;
+      _detectedASN = null;
       await _clearActiveConfig();
       notifyListeners();
+      detectRealCountry();
     } catch (e) {
       debugPrint('Error disconnecting from V2Ray: $e');
     }
   }
 
-  Future<int?> getServerDelay(V2RayConfig config) async {
+  Future<int?> getServerDelay(V2RayConfig config, {bool useCache = true}) async {
     final configId = config.id;
     final hostKey = '${config.address}:${config.port}';
 
     try {
-      if (_pingCache.containsKey(hostKey)) {
+      if (useCache && _pingCache.containsKey(hostKey)) {
         final cachedValue = _pingCache[hostKey];
-        if (cachedValue != null) {
+        if (cachedValue != null && cachedValue >= 0) {
           return cachedValue;
         }
       }
 
       if (_pingInProgress[hostKey] == true) {
         int attempts = 0;
-        while (_pingInProgress[hostKey] == true && attempts < 10) {
+        while (_pingInProgress[hostKey] == true && attempts < 50) {
           await Future.delayed(const Duration(milliseconds: 100));
           attempts++;
         }
@@ -328,24 +437,33 @@ class V2RayService extends ChangeNotifier {
           appSettings = AppSettings();
         }
 
-        final fullConfig = V2RayConfigBuilder.buildFullConfig(
+        debugPrint('🔍 Testing ping for ${config.remark} (${config.address}:${config.port})');
+        debugPrint('📋 Config type: ${config.configType}');
+        
+        final speedtestConfig = V2RayConfigBuilder.buildConfigForSpeedtest(
           serverConfig: config,
           settings: appSettings,
         );
 
-        final configJson = jsonEncode(fullConfig);
+        final configJson = jsonEncode(speedtestConfig);
+        debugPrint('📦 Speedtest config JSON length: ${configJson.length} bytes');
         
         final delay = await _flutterV2ray
-            .getServerDelay(config: configJson)
+            .measureOutboundDelay(config: configJson, url: appSettings.connectionTestUrl)
             .timeout(
-              const Duration(seconds: 5),
-              onTimeout: () => -1,
+              const Duration(seconds: 15),
+              onTimeout: () {
+                debugPrint('⏱️ Timeout for ${config.remark}');
+                return -1;
+              },
             );
+
+        debugPrint('📊 Ping result for ${config.remark}: ${delay}ms');
 
         if (delay >= 0 && delay < 10000) {
           _pingCache[hostKey] = delay;
           _pingCache[configId] = delay;
-          _savePingCache();
+          if (useCache) _savePingCache();
         } else {
           _pingCache[hostKey] = -1;
           _pingCache[configId] = -1;
@@ -353,7 +471,9 @@ class V2RayService extends ChangeNotifier {
         
         _pingInProgress[hostKey] = false;
         return delay >= 0 ? delay : null;
-      } catch (e) {
+      } catch (e, stackTrace) {
+        debugPrint('❌ Ping error for ${config.remark}: $e');
+        debugPrint('Stack trace: $stackTrace');
         _pingInProgress[hostKey] = false;
         _pingCache[hostKey] = -1;
         return null;
@@ -373,7 +493,7 @@ class V2RayService extends ChangeNotifier {
     _savePingCache();
   }
 
-  Future<List<V2RayConfig>> parseSubscriptionUrl(String url) async {
+  Future<Map<String, dynamic>> parseSubscriptionUrl(String url, {String? subscriptionId}) async {
     try {
       final response = await http
           .get(Uri.parse(url))
@@ -388,7 +508,14 @@ class V2RayService extends ChangeNotifier {
         throw Exception('Failed to load subscription: HTTP ${response.statusCode}');
       }
 
-      return _parseContent(response.body, source: 'subscription');
+      final configs = _parseContent(response.body, source: 'subscription', subscriptionId: subscriptionId);
+      
+      final subInfo = _parseSubscriptionInfo(response.headers);
+      
+      return {
+        'configs': configs,
+        'subInfo': subInfo,
+      };
     } catch (e) {
       debugPrint('Error parsing subscription: $e');
       
@@ -406,6 +533,51 @@ class V2RayService extends ChangeNotifier {
         throw Exception('Failed to update subscription: ${e.toString()}');
       }
     }
+  }
+
+  Map<String, dynamic>? _parseSubscriptionInfo(Map<String, String> headers) {
+    final subInfoStr = headers['subscription-userinfo'];
+    if (subInfoStr == null) return null;
+
+    try {
+      final values = subInfoStr.split(';');
+      final map = <String, int>{};
+      
+      for (final v in values) {
+        final parts = v.split('=');
+        if (parts.length == 2) {
+          final key = parts[0].trim();
+          final value = num.tryParse(parts[1].trim())?.toInt();
+          if (value != null) {
+            map[key] = value;
+          }
+        }
+      }
+
+      if (map.containsKey('upload') && map.containsKey('download') && map.containsKey('total')) {
+        final upload = map['upload']!;
+        final download = map['download']!;
+        var total = map['total']!;
+        var expire = map['expire'];
+
+        const infiniteTrafficThreshold = 9223372036854775807;
+        const infiniteTimeThreshold = 92233720368;
+
+        if (total == 0) total = infiniteTrafficThreshold;
+        if (expire == null || expire == 0) expire = infiniteTimeThreshold;
+
+        return {
+          'upload': upload,
+          'download': download,
+          'total': total,
+          'expire': DateTime.fromMillisecondsSinceEpoch(expire * 1000),
+        };
+      }
+    } catch (e) {
+      debugPrint('Error parsing subscription info: $e');
+    }
+
+    return null;
   }
 
   Future<List<V2RayConfig>> parseSubscriptionContent(String content) async {
@@ -438,7 +610,7 @@ class V2RayService extends ChangeNotifier {
     }
   }
 
-  List<V2RayConfig> _parseContent(String content, {String source = 'subscription'}) {
+  List<V2RayConfig> _parseContent(String content, {String source = 'subscription', String? subscriptionId}) {
     final List<V2RayConfig> configs = [];
 
     try {
@@ -494,6 +666,7 @@ class V2RayService extends ChangeNotifier {
               configType: configType,
               fullConfig: line,
               source: source,
+              subscriptionId: subscriptionId,
             ),
           );
         }

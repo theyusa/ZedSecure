@@ -2,6 +2,50 @@
 
 All notable changes to ZedSecure VPN will be documented in this file.
 
+## [1.7.0] - 2026-02-01
+
+### Added
+- **HevTun Integration**: Replaced FluxTun with [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel/) for better performance and stability
+- **Subscription Grouping**: Tab-based navigation for each subscription (similar to v2rayNG)
+  - "All" tab shows all servers
+  - Each subscription gets its own tab with server count
+  - Easy switching between subscription groups
+- **Subscription Traffic Info**: Display data usage with visual progress bars
+  - Upload/Download statistics
+  - Total traffic limit with percentage
+  - Color-coded progress (red when >90% used)
+- **Subscription Expiry Info**: Show expiration date and countdown
+  - Days/hours/minutes remaining
+  - Warning icon when expired
+- **Auto Select Best Server**: Automatically ping all servers and select the fastest one
+  - Magic wand button in servers screen
+  - Works per subscription tab
+  - Option to reconnect if VPN is active
+- **Real Ping Testing**: Uses `measureOutboundDelay` method for accurate latency measurement
+  - Sequential ping with 200ms delay between servers
+  - 15-second timeout per server
+  - Simplified config for faster testing
+
+### Changed
+- **TUN Library**: Migrated from FluxTun (Rust) to HevTun (C) for better compatibility
+- **Server Organization**: Servers now grouped by subscription with tab navigation
+- **Ping System**: Improved accuracy with real outbound delay measurement
+- **Subscription Updates**: Now properly replaces old configs when updating
+- **Country Detection**: Enhanced with 3 retry attempts and exponential backoff
+
+### Fixed
+- JNI registration issues with native library loading
+- Subscription update logic to avoid duplicate configs
+- Server filtering by subscription ID
+- Config parsing with subscription metadata
+
+### Technical
+- Built HevTun native libraries for all architectures (arm64-v8a, armeabi-v7a, x86, x86_64)
+- Added `subscriptionId` field to V2RayConfig model
+- Implemented subscription info parser for HTTP headers
+- Created build scripts for HevTun compilation (PowerShell and Bash)
+- Fixed Windows symlink issues in hev-socks5-tunnel source
+
 ## [1.6.0] - 2026-01-31
 
 ### Added

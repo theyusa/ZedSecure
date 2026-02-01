@@ -29,17 +29,29 @@ class AppListMethodChannel(private val context: Context) : MethodCallHandler {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val packageManager = context.packageManager
-                        val installedPackages = packageManager.getInstalledPackages(PackageManager.GET_PERMISSIONS)
+                        val installedPackages = packageManager.getInstalledPackages(
+                            PackageManager.GET_META_DATA or PackageManager.MATCH_UNINSTALLED_PACKAGES
+                        )
                         
                         val appList = mutableListOf<Map<String, Any>>()
                         
                         for (pkg in installedPackages) {
                             try {
                                 val appInfo = pkg.applicationInfo ?: continue
+                                
+                                if (appInfo.packageName == context.packageName) {
+                                    continue
+                                }
+                                
                                 val isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
                                 val isUpdatedSystemApp = (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
                                 
-                                val appName = packageManager.getApplicationLabel(appInfo).toString()
+                                val appName = try {
+                                    packageManager.getApplicationLabel(appInfo).toString()
+                                } catch (e: Exception) {
+                                    appInfo.packageName
+                                }
+                                
                                 val packageName = appInfo.packageName
                                 
                                 appList.add(mapOf(

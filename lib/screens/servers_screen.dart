@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:zedsecure/services/v2ray_service.dart';
 import 'package:zedsecure/services/theme_service.dart';
 import 'package:zedsecure/models/v2ray_config.dart';
+import 'package:zedsecure/models/subscription.dart';
 import 'package:zedsecure/theme/app_theme.dart';
 import 'package:zedsecure/screens/edit_config_screen.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -19,17 +20,21 @@ class ServersScreen extends StatefulWidget {
   State<ServersScreen> createState() => _ServersScreenState();
 }
 
-class _ServersScreenState extends State<ServersScreen> {
+class _ServersScreenState extends State<ServersScreen> with SingleTickerProviderStateMixin {
   List<V2RayConfig> _configs = [];
+  List<Subscription> _subscriptions = [];
   bool _isLoading = true;
   bool _isSorting = false;
   String _searchQuery = '';
   final Map<String, int?> _pingResults = {};
   String? _selectedConfigId;
+  TabController? _tabController;
+  String? _currentSubscriptionId;
 
   @override
   void initState() {
     super.initState();
+    _loadSubscriptions();
     _loadConfigs();
     _loadSelectedConfig();
     final service = Provider.of<V2RayService>(context, listen: false);
@@ -38,6 +43,7 @@ class _ServersScreenState extends State<ServersScreen> {
 
   @override
   void dispose() {
+    _tabController?.dispose();
     final service = Provider.of<V2RayService>(context, listen: false);
     service.removeListener(_onServiceChanged);
     super.dispose();
@@ -45,6 +51,32 @@ class _ServersScreenState extends State<ServersScreen> {
 
   void _onServiceChanged() {
     _loadConfigs();
+  }
+
+  Future<void> _loadSubscriptions() async {
+    final service = Provider.of<V2RayService>(context, listen: false);
+    final subs = await service.loadSubscriptions();
+    setState(() {
+      _subscriptions = subs;
+      _setupTabController();
+    });
+  }
+
+  void _setupTabController() {
+    _tabController?.dispose();
+    final tabCount = _subscriptions.length + 1;
+    _tabController = TabController(length: tabCount, vsync: this);
+    _tabController!.addListener(() {
+      if (!_tabController!.indexIsChanging) {
+        setState(() {
+          if (_tabController!.index == 0) {
+            _currentSubscriptionId = null;
+          } else {
+            _currentSubscriptionId = _subscriptions[_tabController!.index - 1].id;
+          }
+        });
+      }
+    });
   }
 
   Future<void> _loadSelectedConfig() async {
@@ -81,25 +113,111 @@ class _ServersScreenState extends State<ServersScreen> {
     });
 
     final service = Provider.of<V2RayService>(context, listen: false);
-    final futures = <Future>[];
     
     for (int i = 0; i < _configs.length; i++) {
+      if (!mounted) break;
+      
       final config = _configs[i];
-      final future = service.getServerDelay(config).then((ping) {
-        if (mounted) setState(() => _pingResults[config.id] = ping ?? -1);
-      }).catchError((e) {
-        if (mounted) setState(() => _pingResults[config.id] = -1);
-      });
-      futures.add(future);
-      if (futures.length >= 30 || i == _configs.length - 1) {
-        await Future.wait(futures);
-        futures.clear();
+      try {
+        final ping = await service.getServerDelay(config, useCache: false);
+        if (mounted) {
+          setState(() => _pingResults[config.id] = ping ?? -1);
+        }
+      } catch (e) {
+        debugPrint('Ping error for ${config.remark}: $e');
+        if (mounted) {
+          setState(() => _pingResults[config.id] = -1);
+        }
       }
+      
+      await Future.delayed(const Duration(milliseconds: 200));
     }
 
     if (mounted) {
       _sortByPing();
       setState(() => _isSorting = false);
+    }
+  }
+
+  Future<void> _autoSelectBestServer() async {
+    setState(() {
+      _isSorting = true;
+      _pingResults.clear();
+    });
+
+    final service = Provider.of<V2RayService>(context, listen: false);
+    final configs = _currentSubscriptionId != null
+        ? _configs.where((c) => c.subscriptionId == _currentSubscriptionId).toList()
+        : _configs;
+
+    if (configs.isEmpty) {
+      _showSnackBar('No Servers', 'No servers available to test');
+      setState(() => _isSorting = false);
+      return;
+    }
+
+    V2RayConfig? bestConfig;
+    int bestPing = 999999;
+
+    for (int i = 0; i < configs.length; i++) {
+      if (!mounted) break;
+
+      final config = configs[i];
+      try {
+        final ping = await service.getServerDelay(config, useCache: false);
+        if (mounted) {
+          setState(() => _pingResults[config.id] = ping ?? -1);
+        }
+
+        if (ping != null && ping > 0 && ping < bestPing) {
+          bestPing = ping;
+          bestConfig = config;
+        }
+      } catch (e) {
+        debugPrint('Ping error for ${config.remark}: $e');
+        if (mounted) {
+          setState(() => _pingResults[config.id] = -1);
+        }
+      }
+
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+
+    if (mounted) {
+      _sortByPing();
+      setState(() => _isSorting = false);
+
+      if (bestConfig != null) {
+        await _handleSelectConfig(bestConfig);
+        
+        if (service.isConnected) {
+          final shouldReconnect = await showCupertinoDialog<bool>(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('Auto Select'),
+              content: Text('Best server found: ${bestConfig!.remark} (${bestPing}ms)\n\nReconnect to this server?'),
+              actions: [
+                CupertinoDialogAction(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('No'),
+                ),
+                CupertinoDialogAction(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Yes'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldReconnect == true) {
+            await _handleConnect(bestConfig);
+          }
+        } else {
+          _showSnackBar('Best Server Selected', '${bestConfig.remark} (${bestPing}ms)');
+        }
+      } else {
+        _showSnackBar('Auto Select Failed', 'No working servers found');
+      }
     }
   }
 
@@ -117,8 +235,14 @@ class _ServersScreenState extends State<ServersScreen> {
   }
 
   List<V2RayConfig> get _filteredConfigs {
-    if (_searchQuery.isEmpty) return _configs;
-    return _configs.where((config) {
+    var configs = _configs;
+    
+    if (_currentSubscriptionId != null) {
+      configs = configs.where((c) => c.subscriptionId == _currentSubscriptionId).toList();
+    }
+    
+    if (_searchQuery.isEmpty) return configs;
+    return configs.where((config) {
       return config.remark.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           config.address.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           config.configType.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -616,6 +740,8 @@ class _ServersScreenState extends State<ServersScreen> {
         child: Column(
           children: [
             _buildHeader(isDark),
+            if (_subscriptions.isNotEmpty && _tabController != null)
+              _buildTabBar(isDark),
             _buildSearchBar(isDark),
             Expanded(child: _buildServerList(isDark)),
           ],
@@ -643,6 +769,7 @@ class _ServersScreenState extends State<ServersScreen> {
               _buildIconButton(CupertinoIcons.add_circled, _showManualAddDialog, isDark),
               _buildIconButton(CupertinoIcons.doc_on_clipboard, _importFromClipboard, isDark),
               _buildIconButton(CupertinoIcons.qrcode_viewfinder, _scanQRCode, isDark),
+              _buildIconButton(CupertinoIcons.wand_stars, _autoSelectBestServer, isDark, tooltip: 'Auto Select'),
               _isSorting
                   ? const Padding(
                       padding: EdgeInsets.all(8),
@@ -657,8 +784,8 @@ class _ServersScreenState extends State<ServersScreen> {
     );
   }
 
-  Widget _buildIconButton(IconData icon, VoidCallback onTap, bool isDark) {
-    return GestureDetector(
+  Widget _buildIconButton(IconData icon, VoidCallback onTap, bool isDark, {String? tooltip}) {
+    final button = GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(8),
@@ -669,6 +796,15 @@ class _ServersScreenState extends State<ServersScreen> {
         ),
       ),
     );
+
+    if (tooltip != null) {
+      return Tooltip(
+        message: tooltip,
+        child: button,
+      );
+    }
+
+    return button;
   }
 
   Widget _buildSearchBar(bool isDark) {
@@ -678,6 +814,65 @@ class _ServersScreenState extends State<ServersScreen> {
         placeholder: 'Search servers...',
         onChanged: (value) => setState(() => _searchQuery = value),
         style: TextStyle(color: isDark ? Colors.white : Colors.black),
+      ),
+    );
+  }
+
+  Widget _buildTabBar(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        indicator: BoxDecoration(
+          color: AppTheme.primaryBlue.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        labelColor: AppTheme.primaryBlue,
+        unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
+        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        dividerColor: Colors.transparent,
+        padding: const EdgeInsets.all(4),
+        indicatorPadding: const EdgeInsets.symmetric(horizontal: 4),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+        tabs: [
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(CupertinoIcons.square_grid_2x2, size: 16),
+                const SizedBox(width: 6),
+                Text('All (${_configs.length})'),
+              ],
+            ),
+          ),
+          ..._subscriptions.map((sub) {
+            final count = _configs.where((c) => c.subscriptionId == sub.id).length;
+            return Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(CupertinoIcons.cloud_fill, size: 16),
+                  const SizedBox(width: 6),
+                  Text('${sub.name} ($count)'),
+                ],
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -695,12 +890,12 @@ class _ServersScreenState extends State<ServersScreen> {
             Icon(CupertinoIcons.rectangle_stack, size: 64, color: AppTheme.systemGray),
             const SizedBox(height: 16),
             Text(
-              'No servers found',
+              _currentSubscriptionId != null ? 'No servers in this subscription' : 'No servers found',
               style: TextStyle(fontSize: 18, color: isDark ? Colors.white : Colors.black),
             ),
             const SizedBox(height: 8),
             Text(
-              'Add servers from Subscriptions',
+              _currentSubscriptionId != null ? 'Update subscription to fetch servers' : 'Add servers from Subscriptions',
               style: TextStyle(fontSize: 14, color: AppTheme.systemGray),
             ),
           ],
@@ -711,14 +906,18 @@ class _ServersScreenState extends State<ServersScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
       children: [
-        if (_manualConfigs.isNotEmpty) ...[
-          _buildSectionHeader('Manual Configs', _manualConfigs.length, CupertinoIcons.pencil, isDark),
-          ..._manualConfigs.map((c) => _buildServerCard(c, isDark)),
-          const SizedBox(height: 24),
-        ],
-        if (_subscriptionConfigs.isNotEmpty) ...[
-          _buildSectionHeader('Subscription Configs', _subscriptionConfigs.length, CupertinoIcons.cloud_download, isDark),
-          ..._subscriptionConfigs.map((c) => _buildServerCard(c, isDark)),
+        if (_currentSubscriptionId == null) ...[
+          if (_manualConfigs.isNotEmpty) ...[
+            _buildSectionHeader('Manual Configs', _manualConfigs.length, CupertinoIcons.pencil, isDark),
+            ..._manualConfigs.map((c) => _buildServerCard(c, isDark)),
+            const SizedBox(height: 24),
+          ],
+          if (_subscriptionConfigs.isNotEmpty) ...[
+            _buildSectionHeader('Subscription Configs', _subscriptionConfigs.length, CupertinoIcons.cloud_download, isDark),
+            ..._subscriptionConfigs.map((c) => _buildServerCard(c, isDark)),
+          ],
+        ] else ...[
+          ..._filteredConfigs.map((c) => _buildServerCard(c, isDark)),
         ],
       ],
     );
@@ -964,8 +1163,13 @@ class _ServersScreenState extends State<ServersScreen> {
   Future<void> _pingSingleServer(V2RayConfig config) async {
     setState(() => _pingResults[config.id] = null);
     final service = Provider.of<V2RayService>(context, listen: false);
-    final ping = await service.getServerDelay(config);
-    if (mounted) setState(() => _pingResults[config.id] = ping ?? -1);
+    try {
+      final ping = await service.getServerDelay(config, useCache: false);
+      if (mounted) setState(() => _pingResults[config.id] = ping ?? -1);
+    } catch (e) {
+      debugPrint('Single ping error for ${config.remark}: $e');
+      if (mounted) setState(() => _pingResults[config.id] = -1);
+    }
   }
 
   Future<void> _handleConnect(V2RayConfig config) async {

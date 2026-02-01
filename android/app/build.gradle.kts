@@ -22,11 +22,24 @@ android {
         applicationId = "com.zedsecure.vpn"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.6.0"
+        versionCode = 8
+        versionName = "1.7.0"
 
         manifestPlaceholders.put("io.flutter.embedding.android.EnableImpeller", "false")
+        
+        // externalNativeBuild {
+        //     cmake {
+        //         cppFlags += ""
+        //     }
+        // }
     }
+
+    // externalNativeBuild {
+    //     cmake {
+    //         path = file("src/main/cpp/CMakeLists.txt")
+    //         version = "3.18.1"
+    //     }
+    // }
 
     packagingOptions {
         jniLibs {

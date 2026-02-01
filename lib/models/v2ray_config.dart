@@ -10,6 +10,7 @@ class V2RayConfig {
   bool isConnected;
   final String source;
   final String? countryCode;
+  final String? subscriptionId;
 
   V2RayConfig({
     required this.id,
@@ -21,6 +22,7 @@ class V2RayConfig {
     this.isConnected = false,
     this.source = 'manual',
     String? countryCode,
+    this.subscriptionId,
   }) : countryCode = countryCode ?? CountryDetector.detectCountryCode(remark, address);
 
   factory V2RayConfig.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,7 @@ class V2RayConfig {
       isConnected: json['isConnected'] as bool? ?? false,
       source: json['source'] as String? ?? 'manual',
       countryCode: json['countryCode'] as String?,
+      subscriptionId: json['subscriptionId'] as String?,
     );
   }
 
@@ -48,6 +51,7 @@ class V2RayConfig {
       'isConnected': isConnected,
       'source': source,
       'countryCode': countryCode,
+      'subscriptionId': subscriptionId,
     };
   }
 
@@ -61,6 +65,7 @@ class V2RayConfig {
     bool? isConnected,
     String? source,
     String? countryCode,
+    String? subscriptionId,
   }) {
     return V2RayConfig(
       id: id ?? this.id,
@@ -72,6 +77,7 @@ class V2RayConfig {
       isConnected: isConnected ?? this.isConnected,
       source: source ?? this.source,
       countryCode: countryCode ?? this.countryCode,
+      subscriptionId: subscriptionId ?? this.subscriptionId,
     );
   }
 

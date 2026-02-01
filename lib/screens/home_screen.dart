@@ -19,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isConnecting = false;
+  bool _isDetectingLocation = false;
   late AnimationController _rotationController;
   late AnimationController _pulseController;
   V2RayConfig? _selectedConfig;
@@ -141,8 +142,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         else
                           _buildNoServerCard(isDark),
                         const SizedBox(height: 20),
-                        if (isConnected && status != null)
+                        if (isConnected && status != null) ...[
+                          _buildConnectionInfoGrid(v2rayService, isDark),
+                          const SizedBox(height: 20),
                           _buildStatsGrid(status, isDark),
+                        ],
                       ],
                     ),
                   ),
@@ -165,41 +169,41 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       builder: (context, child) {
         return Container(
           margin: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(40),
+            borderRadius: BorderRadius.circular(30),
             color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
             boxShadow: [
               BoxShadow(
-                color: AppTheme.connectedGreen.withOpacity(0.2 + (_pulseController.value * 0.1)),
-                blurRadius: 20,
-                spreadRadius: 2,
+                color: AppTheme.connectedGreen.withOpacity(0.15 + (_pulseController.value * 0.08)),
+                blurRadius: 15,
+                spreadRadius: 1,
               ),
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-                blurRadius: 15,
-                offset: const Offset(0, 4),
+                color: Colors.black.withOpacity(isDark ? 0.25 : 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
           child: Row(
             children: [
               Container(
-                width: 10,
-                height: 10,
+                width: 8,
+                height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppTheme.connectedGreen,
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.connectedGreen.withOpacity(0.5),
-                      blurRadius: 8,
-                      spreadRadius: 2,
+                      color: AppTheme.connectedGreen.withOpacity(0.4),
+                      blurRadius: 6,
+                      spreadRadius: 1,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,16 +212,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Text(
                       'Connected',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: isDark ? Colors.white : Colors.black,
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Text(
                       duration,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         color: AppTheme.systemGray,
                       ),
                     ),
@@ -225,9 +228,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   color: AppTheme.connectedGreen.withOpacity(0.12),
                 ),
                 child: Row(
@@ -235,14 +238,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   children: [
                     Icon(
                       CupertinoIcons.arrow_up,
-                      size: 12,
+                      size: 10,
                       color: AppTheme.connectedGreen,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 3),
                     Text(
                       uploadSpeed,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.connectedGreen,
                       ),
@@ -250,11 +253,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   color: AppTheme.primaryBlue.withOpacity(0.12),
                 ),
                 child: Row(
@@ -262,14 +265,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   children: [
                     Icon(
                       CupertinoIcons.arrow_down,
-                      size: 12,
+                      size: 10,
                       color: AppTheme.primaryBlue,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 3),
                     Text(
                       downloadSpeed,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.primaryBlue,
                       ),
@@ -277,18 +280,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               GestureDetector(
                 onTap: () => service.disconnect(),
                 child: Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppTheme.disconnectedRed.withOpacity(0.12),
                   ),
                   child: Icon(
                     CupertinoIcons.xmark,
-                    size: 14,
+                    size: 12,
                     color: AppTheme.disconnectedRed,
                   ),
                 ),
@@ -441,18 +444,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildServerCard(V2RayConfig config, V2RayService service, bool isConnected, bool isDark) {
-    final countryCode = isConnected 
-        ? (service.detectedCountryCode ?? CountryDetector.detectCountryCode(config.remark, config.address))
-        : CountryDetector.detectCountryCode(config.remark, config.address);
+    final countryCode = service.detectedCountryCode ?? 'XX';
     final detectedIP = service.detectedIP;
     final detectedCity = service.detectedCity;
     final detectedRegion = service.detectedRegion;
     
-    String locationText = CountryDetector.getCountryName(countryCode);
-    if (isConnected && detectedCity != null && detectedRegion != null) {
+    String locationText = 'Unknown Location';
+    if (detectedCity != null && detectedRegion != null) {
       locationText = '$detectedCity, $detectedRegion';
-    } else if (isConnected && detectedCity != null) {
+    } else if (detectedCity != null) {
       locationText = detectedCity;
+    } else if (countryCode != 'XX') {
+      locationText = CountryDetector.getCountryName(countryCode);
     }
     
     return Column(
@@ -568,10 +571,146 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ],
           ),
         ),
-        if (isConnected) ...[
-          const SizedBox(height: 12),
-          _buildPingCard(config, service, isDark),
-        ],
+      ],
+    );
+  }
+
+  Widget _buildConnectionInfoGrid(V2RayService service, bool isDark) {
+    return Row(
+      children: [
+        Expanded(child: _buildPingCard(service.activeConfig!, service, isDark)),
+        const SizedBox(width: 12),
+        Expanded(child: _buildLocationCard(service, isDark)),
+      ],
+    );
+  }
+
+  Widget _buildLocationCard(V2RayService service, bool isDark) {
+    final detectedIP = service.detectedIP;
+    final detectedCity = service.detectedCity;
+    final detectedRegion = service.detectedRegion;
+    final detectedASN = service.detectedASN;
+    
+    return GestureDetector(
+      onTap: _isDetectingLocation ? null : () async {
+        setState(() => _isDetectingLocation = true);
+        await service.detectRealCountry();
+        if (mounted) setState(() => _isDetectingLocation = false);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFFAF52DE).withOpacity(0.12),
+                  ),
+                  child: Icon(CupertinoIcons.location_solid, size: 16, color: const Color(0xFFAF52DE)),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Location Info',
+                    style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
+                  ),
+                ),
+                if (_isDetectingLocation)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CupertinoActivityIndicator(radius: 8),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFAF52DE).withOpacity(0.1),
+                    ),
+                    child: Icon(
+                      CupertinoIcons.arrow_clockwise,
+                      size: 12,
+                      color: const Color(0xFFAF52DE),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (_isDetectingLocation) ...[
+              Text(
+                'Detecting...',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.systemGray,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ] else if (detectedIP != null || detectedCity != null || detectedASN != null) ...[
+              if (detectedIP != null) ...[
+                _buildInfoRow('IP', detectedIP, isDark),
+                const SizedBox(height: 6),
+              ],
+              if (detectedCity != null && detectedRegion != null) ...[
+                _buildInfoRow('Location', '$detectedCity, $detectedRegion', isDark),
+                const SizedBox(height: 6),
+              ],
+              if (detectedASN != null)
+                _buildInfoRow('ASN', detectedASN, isDark),
+            ] else
+              Text(
+                'Tap to detect',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.systemGray,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: AppTheme.systemGray,
+          ),
+        ),
+        Flexible(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black,
+              fontFamily: label == 'IP' ? 'monospace' : null,
+            ),
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }
@@ -914,84 +1053,82 @@ class _PingCardWidgetState extends State<_PingCardWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: widget.isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(widget.isDark ? 0.2 : 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: AppTheme.connectedGreen.withOpacity(0.12),
+    return GestureDetector(
+      onTap: _isLoading ? null : _refresh,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: widget.isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(widget.isDark ? 0.2 : 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(
-              CupertinoIcons.speedometer,
-              size: 24,
-              color: AppTheme.connectedGreen,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(
-                  'Connection Latency',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.systemGray,
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: AppTheme.connectedGreen.withOpacity(0.12),
+                  ),
+                  child: Icon(
+                    CupertinoIcons.speedometer,
+                    size: 16,
+                    color: AppTheme.connectedGreen,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _isLoading 
-                      ? 'Testing...' 
-                      : (_ping != null && _ping! >= 0 ? '${_ping}ms' : 'Unavailable'),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: _ping != null && _ping! >= 0 
-                        ? AppTheme.getPingColor(_ping!)
-                        : AppTheme.systemGray,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Latency',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.systemGray,
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: _isLoading ? null : _refresh,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: AppTheme.primaryBlue.withOpacity(_isLoading ? 0.05 : 0.12),
-              ),
-              child: _isLoading
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CupertinoActivityIndicator(radius: 10),
-                    )
-                  : Icon(
-                      CupertinoIcons.refresh,
-                      size: 20,
+                if (_isLoading)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CupertinoActivityIndicator(radius: 8),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppTheme.primaryBlue.withOpacity(0.1),
+                    ),
+                    child: Icon(
+                      CupertinoIcons.arrow_clockwise,
+                      size: 12,
                       color: AppTheme.primaryBlue,
                     ),
+                  ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text(
+              _ping != null && _ping! >= 0 ? '${_ping}ms' : 'Unavailable',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: _ping != null && _ping! >= 0 
+                    ? AppTheme.getPingColor(_ping!)
+                    : AppTheme.systemGray,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

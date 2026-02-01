@@ -60,7 +60,7 @@ class AboutScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildInfoRow('App Version', '1.6.0 • Build 2026', isDark),
+                  _buildInfoRow('App Version', '1.7.0 • Build 2026', isDark),
                   const SizedBox(height: 16),
                   Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
                   const SizedBox(height: 16),

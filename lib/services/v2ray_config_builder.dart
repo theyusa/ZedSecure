@@ -4,6 +4,67 @@ import 'package:zedsecure/models/app_settings.dart';
 import 'package:zedsecure/models/v2ray_config.dart';
 
 class V2RayConfigBuilder {
+  static Map<String, dynamic> buildConfigForSpeedtest({
+    required V2RayConfig serverConfig,
+    required AppSettings settings,
+  }) {
+    try {
+      debugPrint('Building speedtest config for: ${serverConfig.remark}');
+      
+      if (serverConfig.configType.toLowerCase() == 'custom') {
+        debugPrint('Using custom JSON config for speedtest');
+        try {
+          final customConfig = jsonDecode(serverConfig.fullConfig);
+          if (customConfig is Map<String, dynamic>) {
+            return customConfig;
+          } else {
+            throw Exception('Custom config is not a valid JSON object');
+          }
+        } catch (e) {
+          debugPrint('Error parsing custom config: $e');
+          throw Exception('Invalid custom configuration JSON: $e');
+        }
+      }
+      
+      final mainOutbound = _parseServerConfig(serverConfig);
+      if (mainOutbound == null) {
+        debugPrint('ERROR: Failed to parse server config');
+        throw Exception('Failed to parse server configuration');
+      }
+      
+      mainOutbound['mux'] = null;
+      
+      final outbounds = <Map<String, dynamic>>[
+        mainOutbound,
+        {
+          'tag': 'direct',
+          'protocol': 'freedom',
+          'settings': {},
+        },
+        {
+          'tag': 'block',
+          'protocol': 'blackhole',
+          'settings': {},
+        },
+      ];
+      
+      final config = <String, dynamic>{
+        'log': {
+          'loglevel': 'warning',
+        },
+        'outbounds': outbounds,
+        'remarks': serverConfig.remark,
+      };
+      
+      debugPrint('Speedtest config built successfully');
+      return config;
+    } catch (e, stackTrace) {
+      debugPrint('Error building speedtest config: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
   static Map<String, dynamic> buildFullConfig({
     required V2RayConfig serverConfig,
     required AppSettings settings,
@@ -12,6 +73,23 @@ class V2RayConfigBuilder {
     try {
       debugPrint('Building config for: ${serverConfig.remark}');
       debugPrint('Protocol: ${serverConfig.configType}');
+      
+      if (serverConfig.configType.toLowerCase() == 'custom') {
+        debugPrint('Using custom JSON config directly');
+        try {
+          final customConfig = jsonDecode(serverConfig.fullConfig);
+          if (customConfig is Map<String, dynamic>) {
+            debugPrint('Custom config parsed successfully');
+            return customConfig;
+          } else {
+            throw Exception('Custom config is not a valid JSON object');
+          }
+        } catch (e) {
+          debugPrint('Error parsing custom config: $e');
+          throw Exception('Invalid custom configuration JSON: $e');
+        }
+      }
+      
       debugPrint('Full config URL: ${serverConfig.fullConfig}');
       
       final config = <String, dynamic>{

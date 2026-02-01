@@ -10,7 +10,7 @@ import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.util.Log
-import dev.amirzr.flutter_v2ray_client.v2ray.core.FluxTunCore
+import dev.amirzr.flutter_v2ray_client.v2ray.core.HevTunCore
 import dev.amirzr.flutter_v2ray_client.v2ray.core.V2rayCoreManager
 import dev.amirzr.flutter_v2ray_client.v2ray.interfaces.V2rayServicesListener
 import dev.amirzr.flutter_v2ray_client.v2ray.utils.AppConfigs
@@ -58,7 +58,7 @@ class V2rayVPNService : VpnService(), V2rayServicesListener {
                     val tunFd = mInterface?.fd ?: 0
                     if (V2rayCoreManager.getInstance().startCore(config, tunFd)) {
                         Log.d(TAG, "V2ray core started successfully with tunFd=$tunFd")
-                        startFluxTun()
+                        startHevTun()
                     } else {
                         onDestroy()
                     }
@@ -87,7 +87,7 @@ class V2rayVPNService : VpnService(), V2rayServicesListener {
         stopForeground(true)
         isRunning = false
         
-        FluxTunCore.stop()
+        HevTunCore.stop()
         V2rayCoreManager.getInstance().stopCore()
         
         try {
@@ -217,21 +217,33 @@ class V2rayVPNService : VpnService(), V2rayServicesListener {
         }
     }
     
-    private fun startFluxTun() {
-        val fd = mInterface?.fd ?: return
+    private fun startHevTun() {
+        val vpnInterface = mInterface ?: return
         val config = v2rayConfig ?: return
-        val socksHost = "127.0.0.1"
         val socksPort = config.LOCAL_SOCKS5_PORT
         val mtu = 1500
+        val ipv4Address = "10.1.0.1"
+        val ipv6Address = "fc00::1"
+        val preferIpv6 = false
         
-        Log.d(TAG, "Starting FluxTun with fd=$fd, socks=$socksHost:$socksPort")
+        Log.d(TAG, "Starting HevTun with fd=${vpnInterface.fd}, socks=127.0.0.1:$socksPort")
         
-        val started = FluxTunCore.start(fd, socksHost, socksPort, mtu, this)
+        val started = HevTunCore.start(
+            context = this,
+            vpnInterface = vpnInterface,
+            socksPort = socksPort,
+            mtu = mtu,
+            ipv4Address = ipv4Address,
+            ipv6Address = ipv6Address,
+            preferIpv6 = preferIpv6,
+            listener = this
+        )
+        
         if (!started) {
-            Log.e(TAG, "Failed to start FluxTun")
+            Log.e(TAG, "Failed to start HevTun")
             stopAllProcess()
         } else {
-            Log.d(TAG, "FluxTun started successfully")
+            Log.d(TAG, "HevTun started successfully")
         }
     }
     

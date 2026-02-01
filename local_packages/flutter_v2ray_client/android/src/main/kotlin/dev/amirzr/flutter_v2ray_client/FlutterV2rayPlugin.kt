@@ -126,6 +126,20 @@ class FlutterV2rayPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Activity
                         }
                     }
                 }
+                "measureOutboundDelay" -> {
+                    executor.submit {
+                        try {
+                            result.success(
+                                V2rayController.measureV2rayOutboundDelay(
+                                    call.argument("config"),
+                                    call.argument("url")
+                                )
+                            )
+                        } catch (e: Exception) {
+                            result.success(-1)
+                        }
+                    }
+                }
                 "getConnectedServerDelay" -> {
                     executor.submit {
                         try {

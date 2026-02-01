@@ -136,6 +136,10 @@ object V2rayController {
         return V2rayCoreManager.getInstance().getV2rayServerDelay(config ?: "", url ?: "")
     }
     
+    fun measureV2rayOutboundDelay(config: String?, url: String?): Long {
+        return V2rayCoreManager.getInstance().measureV2rayOutboundDelay(config ?: "", url ?: "")
+    }
+    
     fun getConnectionMode(): AppConfigs.V2RAY_CONNECTION_MODES {
         return AppConfigs.V2RAY_CONNECTION_MODE
     }

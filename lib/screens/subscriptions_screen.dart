@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:zedsecure/services/v2ray_service.dart';
 import 'package:zedsecure/services/theme_service.dart';
 import 'package:zedsecure/models/subscription.dart';
+import 'package:zedsecure/models/v2ray_config.dart';
 import 'package:zedsecure/theme/app_theme.dart';
 
 class SubscriptionsScreen extends StatefulWidget {
@@ -270,57 +271,142 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryBlue.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Icon(CupertinoIcons.cloud_fill, color: AppTheme.primaryBlue, size: 24),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  subscription.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${subscription.configCount} servers • ${_formatDate(subscription.lastUpdate)}',
-                  style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
+                child: Center(
+                  child: Icon(CupertinoIcons.cloud_fill, color: AppTheme.primaryBlue, size: 24),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      subscription.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${subscription.configCount} servers • ${_formatDate(subscription.lastUpdate)}',
+                      style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _updateSubscription(subscription),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(CupertinoIcons.refresh, size: 20, color: AppTheme.primaryBlue),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _deleteSubscription(subscription),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(CupertinoIcons.trash, size: 20, color: AppTheme.disconnectedRed),
+                ),
+              ),
+            ],
           ),
-          GestureDetector(
-            onTap: () => _updateSubscription(subscription),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Icon(CupertinoIcons.refresh, size: 20, color: AppTheme.primaryBlue),
+          if (subscription.hasTrafficInfo || subscription.hasExpireInfo) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                children: [
+                  if (subscription.hasTrafficInfo) ...[
+                    Row(
+                      children: [
+                        Icon(CupertinoIcons.arrow_up_arrow_down, size: 14, color: AppTheme.systemGray),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Traffic: ${_formatBytes(subscription.consumption)} / ${_formatBytes(subscription.total!)}',
+                          style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: subscription.ratio,
+                        backgroundColor: AppTheme.systemGray.withOpacity(0.2),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          subscription.ratio > 0.9 ? AppTheme.disconnectedRed : AppTheme.primaryBlue,
+                        ),
+                        minHeight: 6,
+                      ),
+                    ),
+                  ],
+                  if (subscription.hasTrafficInfo && subscription.hasExpireInfo)
+                    const SizedBox(height: 8),
+                  if (subscription.hasExpireInfo) ...[
+                    Row(
+                      children: [
+                        Icon(
+                          subscription.isExpired ? CupertinoIcons.exclamationmark_triangle_fill : CupertinoIcons.clock,
+                          size: 14,
+                          color: subscription.isExpired ? AppTheme.disconnectedRed : AppTheme.systemGray,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          subscription.isExpired
+                              ? 'Expired'
+                              : 'Expires in ${_formatDuration(subscription.remaining!)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: subscription.isExpired
+                                ? AppTheme.disconnectedRed
+                                : (isDark ? Colors.white70 : Colors.black87),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-          GestureDetector(
-            onTap: () => _deleteSubscription(subscription),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Icon(CupertinoIcons.trash, size: 20, color: AppTheme.disconnectedRed),
-            ),
-          ),
+          ],
         ],
       ),
     );
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes >= 1099511627776) return '${(bytes / 1099511627776).toStringAsFixed(2)} TB';
+    if (bytes >= 1073741824) return '${(bytes / 1073741824).toStringAsFixed(2)} GB';
+    if (bytes >= 1048576) return '${(bytes / 1048576).toStringAsFixed(2)} MB';
+    if (bytes >= 1024) return '${(bytes / 1024).toStringAsFixed(2)} KB';
+    return '$bytes B';
+  }
+
+  String _formatDuration(Duration duration) {
+    if (duration.inDays > 365) return '${(duration.inDays / 365).floor()}y';
+    if (duration.inDays > 30) return '${(duration.inDays / 30).floor()}mo';
+    if (duration.inDays > 0) return '${duration.inDays}d';
+    if (duration.inHours > 0) return '${duration.inHours}h';
+    if (duration.inMinutes > 0) return '${duration.inMinutes}m';
+    return 'soon';
   }
 
   String _formatDate(DateTime date) {
@@ -460,7 +546,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     _showSnackBar('Loading', 'Fetching servers...');
     final service = Provider.of<V2RayService>(context, listen: false);
     try {
-      final configs = await service.parseSubscriptionUrl(url);
+      final subscriptionId = DateTime.now().millisecondsSinceEpoch.toString();
+      final result = await service.parseSubscriptionUrl(url, subscriptionId: subscriptionId);
+      final configs = (result['configs'] as List).cast<V2RayConfig>();
+      final subInfo = result['subInfo'] as Map<String, dynamic>?;
+      
       if (configs.isEmpty) {
         _showSnackBar('Error', 'No servers found in subscription');
         return;
@@ -473,11 +563,15 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       await service.saveConfigs(allConfigs);
 
       final subscription = Subscription(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: subscriptionId,
         name: name,
         url: url,
         lastUpdate: DateTime.now(),
         configCount: newConfigs.isNotEmpty ? newConfigs.length : configs.length,
+        upload: subInfo?['upload'] as int?,
+        download: subInfo?['download'] as int?,
+        total: subInfo?['total'] as int?,
+        expire: subInfo?['expire'] as DateTime?,
       );
       _subscriptions.add(subscription);
       await service.saveSubscriptions(_subscriptions);
@@ -492,7 +586,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     _showSnackBar('Loading', 'Fetching servers...');
     final service = Provider.of<V2RayService>(context, listen: false);
     try {
-      final configs = await service.parseSubscriptionUrl(subscription.url);
+      final result = await service.parseSubscriptionUrl(subscription.url, subscriptionId: subscription.id);
+      final configs = (result['configs'] as List).cast<V2RayConfig>();
+      final subInfo = result['subInfo'] as Map<String, dynamic>?;
+      
       if (configs.isEmpty) {
         _showSnackBar('Error', 'No servers found in subscription');
         return;
@@ -507,6 +604,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         final activatedSub = subscription.copyWith(
           lastUpdate: DateTime.now(),
           configCount: configs.length,
+          upload: subInfo?['upload'] as int?,
+          download: subInfo?['download'] as int?,
+          total: subInfo?['total'] as int?,
+          expire: subInfo?['expire'] as DateTime?,
         );
         _subscriptions.add(activatedSub);
         await service.saveSubscriptions(_subscriptions);
@@ -520,6 +621,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       final activatedSub = subscription.copyWith(
         lastUpdate: DateTime.now(),
         configCount: newConfigs.isNotEmpty ? newConfigs.length : configs.length,
+        upload: subInfo?['upload'] as int?,
+        download: subInfo?['download'] as int?,
+        total: subInfo?['total'] as int?,
+        expire: subInfo?['expire'] as DateTime?,
       );
       _subscriptions.add(activatedSub);
       await service.saveSubscriptions(_subscriptions);
@@ -533,10 +638,13 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   Future<void> _updateSubscription(Subscription subscription) async {
     final service = Provider.of<V2RayService>(context, listen: false);
     try {
-      final configs = await service.parseSubscriptionUrl(subscription.url);
+      final result = await service.parseSubscriptionUrl(subscription.url, subscriptionId: subscription.id);
+      final configs = (result['configs'] as List).cast<V2RayConfig>();
+      final subInfo = result['subInfo'] as Map<String, dynamic>?;
+      
       final existingConfigs = await service.loadConfigs();
       final filteredConfigs = existingConfigs.where((config) {
-        return !configs.any((newConfig) => newConfig.fullConfig == config.fullConfig);
+        return config.subscriptionId != subscription.id;
       }).toList();
       final allConfigs = [...filteredConfigs, ...configs];
       await service.saveConfigs(allConfigs);
@@ -544,6 +652,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       final updatedSub = subscription.copyWith(
         lastUpdate: DateTime.now(),
         configCount: configs.length,
+        upload: subInfo?['upload'] as int?,
+        download: subInfo?['download'] as int?,
+        total: subInfo?['total'] as int?,
+        expire: subInfo?['expire'] as DateTime?,
       );
       final index = _subscriptions.indexWhere((s) => s.id == subscription.id);
       if (index != -1) _subscriptions[index] = updatedSub;
