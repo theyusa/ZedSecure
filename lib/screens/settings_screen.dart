@@ -4,11 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:zedsecure/services/v2ray_service.dart';
 import 'package:zedsecure/services/theme_service.dart';
+import 'package:zedsecure/services/mmkv_manager.dart';
 import 'package:zedsecure/theme/app_theme.dart';
 import 'package:zedsecure/screens/per_app_proxy_screen.dart';
 import 'package:zedsecure/screens/advanced_settings_screen.dart';
 import 'package:zedsecure/screens/about_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
@@ -31,16 +31,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _autoConnect = prefs.getBool('auto_connect') ?? false;
-      _killSwitch = prefs.getBool('kill_switch') ?? false;
+      _autoConnect = MmkvManager.decodeSettingsBool('auto_connect');
+      _killSwitch = MmkvManager.decodeSettingsBool('kill_switch');
     });
   }
 
   Future<void> _saveSetting(String key, bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(key, value);
+    MmkvManager.encodeSettingsBool(key, value);
   }
 
   void _showSnackBar(String title, String message) {
@@ -325,7 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           child: _buildNavigationTile(
             'About ZedSecure',
-            'Version 1.6.0 • Build 2026',
+            'Version 1.8.0 • Build 2026',
             CupertinoIcons.info_circle,
             AppTheme.primaryBlue,
             () => Navigator.push(
@@ -382,8 +380,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await service.saveConfigs([]);
               await service.saveSubscriptions([]);
               service.clearPingCache();
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
+              await MmkvManager.clearAll();
               _showSnackBar('All Data Cleared', 'App has been reset');
             },
             child: const Text('Clear All'),

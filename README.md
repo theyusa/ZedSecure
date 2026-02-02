@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.7.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)
 ![Flutter](https://img.shields.io/badge/Flutter-3.38.4-02569B?logo=flutter)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 
@@ -145,34 +145,32 @@ ZedSecure/
 | SOCKS | `socks://user:pass@host:port#remark` | ✅ Full Support |
 | HTTP | `http://user:pass@host:port#remark` | ✅ Full Support |
 
-## What's New in v1.7.0
+## What's New in v1.8.0
 
-### 🆕 New Features
-- **HevTun Integration**: Replaced FluxTun with [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel/) for better performance
-- **Subscription Grouping**: Tab-based navigation for each subscription (like v2rayNG)
-- **Subscription Info**: Display traffic usage, expiry date, and progress bars
-- **Auto Select Best Server**: Automatically ping and select the fastest server
-- **Real Ping Testing**: Uses `measureOutboundDelay` for accurate latency measurement
+### 🔄 Database Migration
+- **MMKV Integration**: Migrated from SharedPreferences to MMKV for 100x faster performance
+- **Multi-Process Support**: All storages use `MULTI_PROCESS_MODE` for VPN service compatibility
+- **Auto Migration**: Seamless migration from old SharedPreferences data
+- **Optimized Storage**: Separate storages for configs, subscriptions, settings, and cache
 
-### 🔧 Improvements
-- **Server Organization**: Separate tabs for each subscription with server count
-- **Traffic Monitoring**: Visual progress bars for subscription data usage
-- **Expiry Tracking**: Countdown timer for subscription expiration
-- **Smart Filtering**: Filter servers by subscription in real-time
-- **Enhanced Ping**: Sequential ping with 200ms delay and 15s timeout
+### 🎨 UI Improvements
+- **Home Screen Redesign**: Improved connection info grid layout
+- **Latency Display**: Real-time ping measurement with refresh button
+- **Better Icons**: Circular icon containers for Download/Upload/Latency
+- **Responsive Design**: FittedBox for speed values to prevent widget expansion
+- **GitHub Logo**: SVG icon for better quality in About screen
 
 ### 🐛 Bug Fixes
-- Fixed JNI registration for HevTun native library
-- Improved subscription update logic to replace old configs
-- Fixed country detection with multiple fallback APIs
-- Better error handling for subscription parsing
+- Fixed duplicate code in v2ray_service.dart
+- Fixed latency measurement timeout issues
+- Fixed ping cache loading with proper timestamp validation
+- Improved error handling for subscription fetching
 
-### 📝 Previous Updates (v1.6.0)
-- Update Checker System with skip version option
-- Full V2Ray Configuration Viewer and Editor
-- Custom JSON Import support
-- Hysteria2 and WireGuard protocol support
-- Per-App Proxy improvements
+### 📝 Previous Updates (v1.7.0)
+- **HevTun Integration**: Replaced FluxTun with hev-socks5-tunnel
+- **Subscription Grouping**: Tab-based navigation for each subscription
+- **Subscription Info**: Display traffic usage and expiry date
+- **Auto Select Best Server**: Automatically ping and select fastest server
 
 ## License
 

@@ -2,123 +2,133 @@
 
 All notable changes to ZedSecure VPN will be documented in this file.
 
-## [1.7.0] - 2026-02-01
+## [1.8.0] - 2026-02-02
 
-### Added
-- **HevTun Integration**: Replaced FluxTun with [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel/) for better performance and stability
-- **Subscription Grouping**: Tab-based navigation for each subscription (similar to v2rayNG)
-  - "All" tab shows all servers
-  - Each subscription gets its own tab with server count
-  - Easy switching between subscription groups
-- **Subscription Traffic Info**: Display data usage with visual progress bars
-  - Upload/Download statistics
-  - Total traffic limit with percentage
-  - Color-coded progress (red when >90% used)
-- **Subscription Expiry Info**: Show expiration date and countdown
-  - Days/hours/minutes remaining
-  - Warning icon when expired
-- **Auto Select Best Server**: Automatically ping all servers and select the fastest one
-  - Magic wand button in servers screen
-  - Works per subscription tab
-  - Option to reconnect if VPN is active
-- **Real Ping Testing**: Uses `measureOutboundDelay` method for accurate latency measurement
-  - Sequential ping with 200ms delay between servers
-  - 15-second timeout per server
-  - Simplified config for faster testing
+### 🔄 Database Migration
+- **MMKV Integration**: Migrated from SharedPreferences to MMKV (Tencent official package v2.3.0)
+  - 100x faster read/write performance
+  - Multi-process support for VPN service compatibility
+  - Separate storages: MAIN, SERVER_CONFIG, SERVER_AFF, SUBSCRIPTION, SETTINGS
+  - All storages use `MULTI_PROCESS_MODE` for stability
+- **Auto Migration**: Seamless migration from SharedPreferences on first launch
+  - Migrates all configs, subscriptions, settings, and cache
+  - No data loss during upgrade
 
-### Changed
-- **TUN Library**: Migrated from FluxTun (Rust) to HevTun (C) for better compatibility
-- **Server Organization**: Servers now grouped by subscription with tab navigation
-- **Ping System**: Improved accuracy with real outbound delay measurement
-- **Subscription Updates**: Now properly replaces old configs when updating
-- **Country Detection**: Enhanced with 3 retry attempts and exponential backoff
+### 🎨 UI Improvements
+- **Home Screen Redesign**:
+  - Improved connection info grid layout matching reference design
+  - Circular icon containers for Download/Upload/Latency
+  - Better visual hierarchy and spacing
+- **Latency Display**:
+  - Real-time ping measurement with 10s timeout
+  - Working refresh button with loading state
+  - Auto-refresh on connection state change
+  - Color-coded latency (green/yellow/red)
+- **Responsive Design**:
+  - FittedBox for speed values to prevent widget expansion
+  - Better handling of large numbers
+- **GitHub Logo**: SVG icon in About screen for better quality
 
-### Fixed
-- JNI registration issues with native library loading
-- Subscription update logic to avoid duplicate configs
-- Server filtering by subscription ID
-- Config parsing with subscription metadata
+### 🐛 Bug Fixes
+- Fixed duplicate code in `v2ray_service.dart` causing build errors
+- Fixed latency measurement stuck on "Measuring..."
+- Fixed ping cache loading with proper timestamp validation (1 hour cache)
+- Improved error handling for subscription fetching with better debug logs
+- Fixed blocked apps list loading from MMKV
 
-### Technical
-- Built HevTun native libraries for all architectures (arm64-v8a, armeabi-v7a, x86, x86_64)
-- Added `subscriptionId` field to V2RayConfig model
-- Implemented subscription info parser for HTTP headers
-- Created build scripts for HevTun compilation (PowerShell and Bash)
-- Fixed Windows symlink issues in hev-socks5-tunnel source
-
-## [1.6.0] - 2026-01-31
-
-### Added
-- **Update Checker System**: Automatically checks for new releases on app start with skip version feature
-- **Full V2Ray Configuration Viewer**: View complete JSON configuration sent to V2Ray core
-- **Custom JSON Config Import**: Import custom V2Ray configurations directly from JSON
-- **Hysteria2 Protocol Support**: Full implementation with password, bandwidth, obfuscation, TLS, and port hopping
-- **WireGuard Protocol Support**: Complete support with secretKey, publicKey, preSharedKey, localAddress, MTU, and reserved
-- **Connection Latency Display**: Real-time ping with manual refresh button on home screen
-- **Country Detection System**: Cloudflare API integration with multiple fallback endpoints
-- **Dynamic Island Widget**: Connection status display at top of home screen when connected
-
-### Changed
-- **Config Builder**: DNS and routing rules now match v2rayNG exactly for better compatibility
-- **Notification Design**: iOS-like notification with real-time upload/download stats and duration
-- **Edit Config Screen**: Removed JSON mode, only form editor remains
-- **Config Viewer**: Editable mode for custom configs with JSON validation
-
-### Fixed
-- Per-App Proxy now finds all user apps correctly (was only finding 23 apps)
-- Edit config screen duplicate `_buildFormEditor` method error
-- Config name no longer changes when viewing Full V2Ray Configuration
-- Hysteria2 URL parsing with correct password placement and port hopping parameters
-- TLS settings order in stream configuration (allowInsecure, fingerprint, serverName, show)
-- WebSocket settings headers order to match v2rayNG
-
-### Technical
-- Updated to Gradle 8.14 and AGP 8.11.1
-- Kotlin upgraded to 2.1.0
-- Added `package_info_plus` dependency for version checking
-- Improved JSON config generation to match v2rayNG structure
-
-## [1.5.0] - 2026-01-15
-
-### Added
-- iOS-style UI redesign with glassmorphism effects
-- Dynamic Island connection status display
-- Ring animation connect button
-- SVG country flags with real location detection
-- FluxTun custom TUN library integration
-- ARMv7 architecture support
-- Improved socket protection
-- Real country detection via Cloudflare
-
-### Changed
-- Complete UI overhaul with modern design
-- Bottom navigation with smooth animations
-- Glass-style cards and components
-
-### Fixed
-- Socket protection for VPN connections
-- Country flag display issues
-
-## [1.0.0] - 2025-12-01
-
-### Added
-- Initial release
-- VMess, VLESS, Trojan, Shadowsocks protocol support
-- TCP, WebSocket, HTTP/2, gRPC, QUIC, XHTTP, HTTPUpgrade transports
-- Subscription management
-- Per-App proxy (Split Tunneling)
-- QR code scan and generate
-- Backup & Restore configs
-- Light/Dark mode support
-- Real-time statistics
+### 🔧 Technical Changes
+- Updated version to 1.8.0+9
+- Added `assets/images/` directory for app assets
+- Improved debug logging for ping measurements
+- Better timeout handling for network operations
 
 ---
 
-## Legend
-- **Added**: New features
-- **Changed**: Changes in existing functionality
-- **Deprecated**: Soon-to-be removed features
-- **Removed**: Removed features
-- **Fixed**: Bug fixes
-- **Security**: Security improvements
-- **Technical**: Technical changes and updates
+## [1.7.0] - 2026-01-28
+
+### 🆕 New Features
+- **HevTun Integration**: Replaced FluxTun with [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel/)
+  - Better performance and stability
+  - Native C implementation
+  - Lower memory footprint
+- **Subscription Grouping**: Tab-based navigation for each subscription (like v2rayNG)
+  - Separate tab for each subscription
+  - Server count display per subscription
+  - Easy switching between subscription groups
+- **Subscription Info Display**:
+  - Traffic usage with progress bars
+  - Expiry date countdown
+  - Upload/Download statistics
+  - Visual indicators for quota
+- **Auto Select Best Server**: Automatically ping and select fastest server
+- **Real Ping Testing**: Uses `measureOutboundDelay` for accurate latency
+
+### 🔧 Improvements
+- **Server Organization**: Better server management with subscription filtering
+- **Traffic Monitoring**: Real-time visual progress bars
+- **Expiry Tracking**: Countdown timer for subscription expiration
+- **Smart Filtering**: Filter servers by subscription in real-time
+- **Enhanced Ping**: Sequential ping with 200ms delay and 15s timeout
+
+### 🐛 Bug Fixes
+- Fixed JNI registration for HevTun native library
+- Improved subscription update logic to replace old configs
+- Fixed country detection with multiple fallback APIs
+- Better error handling for subscription parsing
+
+---
+
+## [1.6.0] - 2026-01-20
+
+### 🆕 New Features
+- **Update Checker System**:
+  - Auto-check for new releases on GitHub
+  - Skip version option
+  - Manual check from settings
+- **Full V2Ray Configuration Viewer and Editor**:
+  - View complete JSON config
+  - Edit and save custom configs
+  - Syntax highlighting
+- **Custom JSON Import**: Import custom V2Ray configs from clipboard
+- **Protocol Support**:
+  - Hysteria2 protocol support
+  - WireGuard protocol support
+
+### 🔧 Improvements
+- **Per-App Proxy**: Enhanced UI with system/user apps filter
+- **Settings Organization**: Better categorization of settings
+- **Error Messages**: More descriptive error messages
+
+---
+
+## [1.5.0] - 2026-01-10
+
+### 🆕 Initial Release Features
+- **Core Protocols**: VMess, VLESS, Trojan, Shadowsocks, SOCKS, HTTP
+- **Transports**: TCP, WebSocket, HTTP/2, gRPC, QUIC, mKCP
+- **Security**: TLS, Reality with fingerprint customization
+- **Statistics**: Real-time upload/download speed and total data
+- **Server Management**: Concurrent ping testing, subscription support
+- **Split Tunneling**: Per-App proxy configuration
+- **iOS-Style UI**: Modern design with glassmorphism effects
+- **Dynamic Island**: Connection status display
+- **Light/Dark Mode**: Theme support
+- **Country Flags**: SVG flags with real location detection
+- **Backup & Restore**: Export/Import configs to JSON
+- **QR Code**: Scan and generate QR codes
+
+---
+
+## Version Format
+
+Version format: `MAJOR.MINOR.PATCH+BUILD`
+- **MAJOR**: Breaking changes
+- **MINOR**: New features (backward compatible)
+- **PATCH**: Bug fixes
+- **BUILD**: Build number (incremental)
+
+## Links
+
+- **GitHub**: https://github.com/CluvexStudio/ZedSecure
+- **Telegram**: https://t.me/CluvexStudio
+- **Releases**: https://github.com/CluvexStudio/ZedSecure/releases

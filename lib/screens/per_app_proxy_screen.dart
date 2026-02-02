@@ -1,7 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zedsecure/services/mmkv_manager.dart';
 import 'package:zedsecure/theme/app_theme.dart';
 
 class PerAppProxyScreen extends StatefulWidget {
@@ -33,8 +34,10 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
     });
     
     try {
-      final prefs = await SharedPreferences.getInstance();
-      _selectedApps = prefs.getStringList('blocked_apps') ?? [];
+      final blockedAppsJson = MmkvManager.decodeSettings('blocked_apps');
+      if (blockedAppsJson != null) {
+        _selectedApps = List<String>.from(jsonDecode(blockedAppsJson));
+      }
       
       final List<dynamic> result = await _appListChannel.invokeMethod('getInstalledApps');
       
@@ -55,8 +58,7 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
   }
 
   Future<void> _saveSelection() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('blocked_apps', _selectedApps);
+    MmkvManager.encodeSettings('blocked_apps', jsonEncode(_selectedApps));
     _showSnackBar('Saved', 'Selection saved (${_selectedApps.length} apps)');
   }
 

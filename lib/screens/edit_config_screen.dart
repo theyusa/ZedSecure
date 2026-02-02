@@ -8,7 +8,6 @@ import 'package:zedsecure/services/v2ray_service.dart';
 import 'package:zedsecure/services/v2ray_config_builder.dart';
 import 'package:zedsecure/theme/app_theme.dart';
 import 'package:zedsecure/screens/config_viewer_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class EditConfigScreen extends StatefulWidget {

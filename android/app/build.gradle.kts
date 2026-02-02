@@ -22,8 +22,8 @@ android {
         applicationId = "com.zedsecure.vpn"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.7.0"
+        versionCode = 9
+        versionName = "1.8.0"
 
         manifestPlaceholders.put("io.flutter.embedding.android.EnableImpeller", "false")
         

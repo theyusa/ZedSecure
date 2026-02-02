@@ -6,6 +6,7 @@ import 'package:zedsecure/services/v2ray_service.dart';
 import 'package:zedsecure/services/theme_service.dart';
 import 'package:zedsecure/services/app_settings_service.dart';
 import 'package:zedsecure/services/update_checker_service.dart';
+import 'package:zedsecure/services/mmkv_manager.dart';
 import 'package:zedsecure/widgets/update_dialog.dart';
 import 'package:zedsecure/theme/app_theme.dart';
 import 'package:zedsecure/screens/home_screen.dart';
@@ -13,8 +14,13 @@ import 'package:zedsecure/screens/servers_screen.dart';
 import 'package:zedsecure/screens/subscriptions_screen.dart';
 import 'package:zedsecure/screens/settings_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await MmkvManager.initialize();
+  
+  await MmkvManager.migrateFromSharedPreferences();
+  
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -58,13 +64,8 @@ class MainNavigation extends StatefulWidget {
   State<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> with TickerProviderStateMixin {
+class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
-  late AnimationController _animationController;
-  late AnimationController _slideIndicatorController;
-  late Animation<double> _scaleAnimation;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _slideIndicatorAnimation;
 
   final List<Widget> _screens = const [
     HomeScreen(),
@@ -76,32 +77,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    
-    _slideIndicatorController = AnimationController(
-      duration: const Duration(milliseconds: 350),
-      vsync: this,
-    );
-    
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
-    );
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
-    );
-    
-    _slideIndicatorAnimation = Tween<double>(begin: 0.0, end: 0.0).animate(
-      CurvedAnimation(parent: _slideIndicatorController, curve: Curves.easeInOutCubic),
-    );
-
-    _animationController.forward();
     _initializeApp();
     _checkForUpdates();
   }
@@ -119,13 +94,6 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     }
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _slideIndicatorController.dispose();
-    super.dispose();
-  }
-
   Future<void> _initializeApp() async {
     final service = Provider.of<V2RayService>(context, listen: false);
     await service.initialize();
@@ -133,18 +101,7 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
 
   void _onTabTapped(int index) {
     if (_selectedIndex != index) {
-      final double begin = _selectedIndex.toDouble();
-      final double end = index.toDouble();
-      
-      _slideIndicatorAnimation = Tween<double>(begin: begin, end: end).animate(
-        CurvedAnimation(parent: _slideIndicatorController, curve: Curves.easeInOutCubic),
-      );
-      
       setState(() => _selectedIndex = index);
-      _animationController.reset();
-      _animationController.forward();
-      _slideIndicatorController.reset();
-      _slideIndicatorController.forward();
     }
   }
 
@@ -154,27 +111,9 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
     
     return Scaffold(
       extendBody: true,
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeInOut,
-        switchOutCurve: Curves.easeInOut,
-        transitionBuilder: (child, animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: child,
-              ),
-            ),
-          );
-        },
-        child: IndexedStack(
-          key: ValueKey<int>(_selectedIndex),
-          index: _selectedIndex,
-          children: _screens,
-        ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
       ),
       bottomNavigationBar: _buildGlassTabBar(isDark),
     );
@@ -182,72 +121,37 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
 
   Widget _buildGlassTabBar(bool isDark) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 25),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          height: 65,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          height: 70,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(24),
             color: isDark 
-                ? Colors.black.withOpacity(0.6)
-                : Colors.white.withOpacity(0.8),
+                ? Colors.black.withOpacity(0.7)
+                : Colors.white.withOpacity(0.85),
             border: Border.all(
               color: isDark 
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
-              width: 0.5,
+                  ? Colors.white.withOpacity(0.12)
+                  : Colors.black.withOpacity(0.08),
+              width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 18,
-                offset: const Offset(0, 4),
+                color: Colors.black.withOpacity(isDark ? 0.4 : 0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-          child: Stack(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              AnimatedBuilder(
-                animation: _slideIndicatorAnimation,
-                builder: (context, child) {
-                  final screenWidth = MediaQuery.of(context).size.width;
-                  final containerWidth = screenWidth - 32;
-                  final tabWidth = containerWidth / 4;
-                  final indicatorWidth = tabWidth * 0.55;
-                  final indicatorHeight = 3.0;
-                  
-                  return Positioned(
-                    left: (_slideIndicatorAnimation.value * tabWidth) + (tabWidth - indicatorWidth) / 2,
-                    bottom: 5,
-                    child: Container(
-                      width: indicatorWidth,
-                      height: indicatorHeight,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(1.5),
-                        color: AppTheme.primaryBlue,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primaryBlue.withOpacity(0.35),
-                            blurRadius: 5,
-                            spreadRadius: 0.5,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildTabItem(0, CupertinoIcons.house_fill, 'Home', isDark),
-                  _buildTabItem(1, CupertinoIcons.rectangle_stack_fill, 'Servers', isDark),
-                  _buildTabItem(2, CupertinoIcons.cloud_fill, 'Subs', isDark),
-                  _buildTabItem(3, CupertinoIcons.gear_solid, 'Settings', isDark),
-                ],
-              ),
+              _buildTabItem(0, CupertinoIcons.house_fill, 'Home', isDark),
+              _buildTabItem(1, CupertinoIcons.rectangle_stack_fill, 'Servers', isDark),
+              _buildTabItem(2, CupertinoIcons.cloud_fill, 'Subs', isDark),
+              _buildTabItem(3, CupertinoIcons.gear_solid, 'Settings', isDark),
             ],
           ),
         ),
@@ -257,41 +161,50 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
 
   Widget _buildTabItem(int index, IconData icon, String label, bool isDark) {
     final isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () => _onTabTapped(index),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedScale(
-              scale: isSelected ? 1.12 : 1.0,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutBack,
-              child: Icon(
-                icon,
-                size: 22,
-                color: isSelected 
-                    ? AppTheme.primaryBlue 
-                    : (isDark ? Colors.white54 : Colors.black45),
+    
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onTabTapped(index),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                padding: EdgeInsets.all(isSelected ? 8 : 6),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected 
+                      ? AppTheme.primaryBlue.withOpacity(0.15)
+                      : Colors.transparent,
+                ),
+                child: Icon(
+                  icon,
+                  size: isSelected ? 24 : 22,
+                  color: isSelected 
+                      ? AppTheme.primaryBlue 
+                      : (isDark ? Colors.white60 : Colors.black54),
+                ),
               ),
-            ),
-            const SizedBox(height: 3),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              style: TextStyle(
-                fontSize: 9.5,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected 
-                    ? AppTheme.primaryBlue 
-                    : (isDark ? Colors.white54 : Colors.black45),
+              const SizedBox(height: 4),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                style: TextStyle(
+                  fontSize: isSelected ? 11 : 10,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected 
+                      ? AppTheme.primaryBlue 
+                      : (isDark ? Colors.white60 : Colors.black54),
+                ),
+                child: Text(label),
               ),
-              child: Text(label),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

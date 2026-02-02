@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zedsecure/theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -60,7 +61,7 @@ class AboutScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildInfoRow('App Version', '1.7.0 • Build 2026', isDark),
+                  _buildInfoRow('App Version', '1.8.0 • Build 2026', isDark),
                   const SizedBox(height: 16),
                   Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
                   const SizedBox(height: 16),
@@ -170,10 +171,15 @@ class AboutScreen extends StatelessWidget {
           color: Colors.black.withOpacity(0.1),
           shape: BoxShape.circle,
         ),
-        child: Icon(
-          CupertinoIcons.link_circle_fill,
-          color: Colors.black87,
-          size: 28,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: SvgPicture.asset(
+            'assets/images/github.svg',
+            colorFilter: const ColorFilter.mode(
+              Colors.black87,
+              BlendMode.srcIn,
+            ),
+          ),
         ),
       ),
     );

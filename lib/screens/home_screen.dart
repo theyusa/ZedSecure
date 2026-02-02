@@ -144,8 +144,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         const SizedBox(height: 20),
                         if (isConnected && status != null) ...[
                           _buildConnectionInfoGrid(v2rayService, isDark),
-                          const SizedBox(height: 20),
-                          _buildStatsGrid(status, isDark),
                         ],
                       ],
                     ),
@@ -514,27 +512,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       locationText,
                       style: TextStyle(fontSize: 13, color: AppTheme.systemGray),
                     ),
-                    if (isConnected && detectedIP != null) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            CupertinoIcons.globe,
-                            size: 12,
-                            color: AppTheme.systemGray,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            detectedIP,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.systemGray,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -576,206 +553,309 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildConnectionInfoGrid(V2RayService service, bool isDark) {
-    return Row(
-      children: [
-        Expanded(child: _buildPingCard(service.activeConfig!, service, isDark)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildLocationCard(service, isDark)),
-      ],
-    );
-  }
-
-  Widget _buildLocationCard(V2RayService service, bool isDark) {
+    final status = service.currentStatus;
+    final detectedCountryCode = service.detectedCountryCode ?? 'XX';
     final detectedIP = service.detectedIP;
-    final detectedCity = service.detectedCity;
-    final detectedRegion = service.detectedRegion;
-    final detectedASN = service.detectedASN;
+    final pingKey = GlobalKey<_PingTextWidgetState>();
     
-    return GestureDetector(
-      onTap: _isDetectingLocation ? null : () async {
-        setState(() => _isDetectingLocation = true);
-        await service.detectRealCountry();
-        if (mounted) setState(() => _isDetectingLocation = false);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: const Color(0xFFAF52DE).withOpacity(0.12),
-                  ),
-                  child: Icon(CupertinoIcons.location_solid, size: 16, color: const Color(0xFFAF52DE)),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Location Info',
-                    style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
-                  ),
-                ),
-                if (_isDetectingLocation)
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CupertinoActivityIndicator(radius: 8),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFAF52DE).withOpacity(0.1),
-                    ),
-                    child: Icon(
-                      CupertinoIcons.arrow_clockwise,
-                      size: 12,
-                      color: const Color(0xFFAF52DE),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            if (_isDetectingLocation) ...[
-              Text(
-                'Detecting...',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.systemGray,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ] else if (detectedIP != null || detectedCity != null || detectedASN != null) ...[
-              if (detectedIP != null) ...[
-                _buildInfoRow('IP', detectedIP, isDark),
-                const SizedBox(height: 6),
-              ],
-              if (detectedCity != null && detectedRegion != null) ...[
-                _buildInfoRow('Location', '$detectedCity, $detectedRegion', isDark),
-                const SizedBox(height: 6),
-              ],
-              if (detectedASN != null)
-                _buildInfoRow('ASN', detectedASN, isDark),
-            ] else
-              Text(
-                'Tap to detect',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppTheme.systemGray,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, bool isDark) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: AppTheme.systemGray,
-          ),
-        ),
-        Flexible(
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : Colors.black,
-              fontFamily: label == 'IP' ? 'monospace' : null,
-            ),
-            textAlign: TextAlign.right,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatsGrid(dynamic status, bool isDark) {
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(child: _buildStatCard('Upload', AppTheme.formatSpeed(status.uploadSpeed), CupertinoIcons.arrow_up, AppTheme.connectedGreen, isDark)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildStatCard('Download', AppTheme.formatSpeed(status.downloadSpeed), CupertinoIcons.arrow_down, AppTheme.primaryBlue, isDark)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildStatCard('Uploaded', AppTheme.formatBytes(status.upload), CupertinoIcons.cloud_upload, AppTheme.warningOrange, isDark)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildStatCard('Downloaded', AppTheme.formatBytes(status.download), CupertinoIcons.cloud_download, const Color(0xFFAF52DE), isDark)),
-          ],
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+                    ),
+                    child: Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SvgPicture.asset(
+                          'assets/flags/${detectedCountryCode.toLowerCase()}.svg',
+                          width: 36,
+                          height: 27,
+                          fit: BoxFit.cover,
+                          placeholderBuilder: (context) => Text(
+                            detectedCountryCode.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryBlue,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'IP Address',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.systemGray,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          detectedIP ?? 'Detecting...',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _isDetectingLocation ? null : () async {
+                      setState(() => _isDetectingLocation = true);
+                      await service.detectRealCountry();
+                      if (mounted) setState(() => _isDetectingLocation = false);
+                    },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+                      ),
+                      child: Center(
+                        child: _isDetectingLocation
+                            ? const CupertinoActivityIndicator(radius: 10)
+                            : Icon(
+                                CupertinoIcons.arrow_clockwise,
+                                size: 18,
+                                color: isDark ? Colors.white70 : Colors.black54,
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppTheme.warningOrange.withOpacity(0.15),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        CupertinoIcons.bolt_fill,
+                        size: 26,
+                        color: AppTheme.warningOrange,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Latency',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.systemGray,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        _PingTextWidget(key: pingKey, service: service, isDark: isDark),
+                      ],
+                    ),
+                  ),
+                  _PingRefreshButton(
+                    pingKey: pingKey,
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.primaryBlue.withOpacity(0.15),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                CupertinoIcons.arrow_down,
+                                size: 22,
+                                color: AppTheme.primaryBlue,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Download',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppTheme.systemGray,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    AppTheme.formatSpeed(status!.downloadSpeed),
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? Colors.white : Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.connectedGreen.withOpacity(0.15),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                CupertinoIcons.arrow_up,
+                                size: 22,
+                                color: AppTheme.connectedGreen,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Upload',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppTheme.systemGray,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    AppTheme.formatSpeed(status.uploadSpeed),
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? Colors.white : Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildPingCard(V2RayConfig config, V2RayService service, bool isDark) {
-    return _PingCardWidget(service: service, isDark: isDark);
-  }
-
-  Widget _buildStatCard(String label, String value, IconData icon, Color color, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildStatItem(String label, String value, IconData icon, Color color, bool isDark) {
+    return Expanded(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: color.withOpacity(0.12),
-                ),
-                child: Icon(icon, size: 16, color: color),
-              ),
-              const SizedBox(width: 8),
-              Text(label, style: TextStyle(fontSize: 12, color: AppTheme.systemGray)),
-            ],
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              color: color.withOpacity(0.12),
+            ),
+            child: Icon(icon, size: 16, color: color),
           ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppTheme.systemGray,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -999,34 +1079,69 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 }
 
-class _PingCardWidget extends StatefulWidget {
+class _PingTextWidget extends StatefulWidget {
   final V2RayService service;
   final bool isDark;
 
-  const _PingCardWidget({required this.service, required this.isDark});
+  const _PingTextWidget({super.key, required this.service, required this.isDark});
 
   @override
-  State<_PingCardWidget> createState() => _PingCardWidgetState();
+  State<_PingTextWidget> createState() => _PingTextWidgetState();
 }
 
-class _PingCardWidgetState extends State<_PingCardWidget> {
+class _PingTextWidgetState extends State<_PingTextWidget> {
   int? _ping;
   bool _isLoading = false;
-  int _refreshKey = 0;
 
   @override
   void initState() {
     super.initState();
+    widget.service.addListener(_onServiceChanged);
     _loadPing();
+  }
+
+  @override
+  void dispose() {
+    widget.service.removeListener(_onServiceChanged);
+    super.dispose();
+  }
+
+  void _onServiceChanged() {
+    if (mounted) {
+      _loadPing();
+    }
+  }
+
+  Future<void> refresh() async {
+    await _loadPing();
   }
 
   Future<void> _loadPing() async {
     if (!mounted) return;
+    
+    if (!widget.service.isConnected) {
+      if (mounted) {
+        setState(() {
+          _ping = null;
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+    
     setState(() => _isLoading = true);
     
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
-      final ping = await widget.service.getConnectedServerDelay();
+      debugPrint('🔍 Starting ping measurement...');
+      final ping = await widget.service.getConnectedServerDelay()
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              debugPrint('⏱️ Ping measurement timeout');
+              return null;
+            },
+          );
+      debugPrint('✅ Ping result: $ping ms');
       if (mounted) {
         setState(() {
           _ping = ping;
@@ -1034,6 +1149,7 @@ class _PingCardWidgetState extends State<_PingCardWidget> {
         });
       }
     } catch (e) {
+      debugPrint('❌ Error loading ping: $e');
       if (mounted) {
         setState(() {
           _ping = null;
@@ -1043,91 +1159,81 @@ class _PingCardWidgetState extends State<_PingCardWidget> {
     }
   }
 
-  void _refresh() {
-    setState(() {
-      _refreshKey++;
-      _ping = null;
-    });
-    _loadPing();
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Text(
+        'Measuring...',
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.systemGray,
+        ),
+      );
+    }
+
+    return Text(
+      _ping != null && _ping! >= 0 ? '$_ping ms' : 'Unavailable',
+      style: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: _ping != null && _ping! >= 0
+            ? AppTheme.getPingColor(_ping!)
+            : AppTheme.systemGray,
+      ),
+    );
+  }
+}
+
+class _PingRefreshButton extends StatefulWidget {
+  final GlobalKey<_PingTextWidgetState> pingKey;
+  final bool isDark;
+
+  const _PingRefreshButton({
+    required this.pingKey,
+    required this.isDark,
+  });
+
+  @override
+  State<_PingRefreshButton> createState() => _PingRefreshButtonState();
+}
+
+class _PingRefreshButtonState extends State<_PingRefreshButton> {
+  bool _isRefreshing = false;
+
+  Future<void> _handleRefresh() async {
+    if (_isRefreshing) return;
+    
+    setState(() => _isRefreshing = true);
+    
+    try {
+      await widget.pingKey.currentState?.refresh();
+    } finally {
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _isLoading ? null : _refresh,
+      onTap: _isRefreshing ? null : _handleRefresh,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: widget.isDark ? const Color(0xFF1C1C1E) : Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(widget.isDark ? 0.2 : 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          shape: BoxShape.circle,
+          color: widget.isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: AppTheme.connectedGreen.withOpacity(0.12),
-                  ),
-                  child: Icon(
-                    CupertinoIcons.speedometer,
-                    size: 16,
-                    color: AppTheme.connectedGreen,
-                  ),
+        child: Center(
+          child: _isRefreshing
+              ? const CupertinoActivityIndicator(radius: 10)
+              : Icon(
+                  CupertinoIcons.arrow_clockwise,
+                  size: 18,
+                  color: widget.isDark ? Colors.white70 : Colors.black54,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Latency',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.systemGray,
-                    ),
-                  ),
-                ),
-                if (_isLoading)
-                  SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CupertinoActivityIndicator(radius: 8),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppTheme.primaryBlue.withOpacity(0.1),
-                    ),
-                    child: Icon(
-                      CupertinoIcons.arrow_clockwise,
-                      size: 12,
-                      color: AppTheme.primaryBlue,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              _ping != null && _ping! >= 0 ? '${_ping}ms' : 'Unavailable',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: _ping != null && _ping! >= 0 
-                    ? AppTheme.getPingColor(_ping!)
-                    : AppTheme.systemGray,
-              ),
-            ),
-          ],
         ),
       ),
     );

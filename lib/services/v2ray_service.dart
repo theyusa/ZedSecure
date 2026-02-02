@@ -1,16 +1,16 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_v2ray_client/flutter_v2ray.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zedsecure/models/v2ray_config.dart';
 import 'package:zedsecure/models/subscription.dart';
 import 'package:zedsecure/models/app_settings.dart';
 import 'package:zedsecure/services/v2ray_config_builder.dart';
 import 'package:zedsecure/services/log_service.dart';
 import 'package:zedsecure/services/native_ping_service.dart';
-import 'package:flutter/foundation.dart';
+import 'package:zedsecure/services/mmkv_manager.dart';
 
 class V2RayService extends ChangeNotifier {
   bool _isInitialized = false;
@@ -18,7 +18,8 @@ class V2RayService extends ChangeNotifier {
   V2RayStatus? _currentStatus;
   
   final Map<String, int?> _pingCache = {};
-  final Map<String, bool> _pingInProgress = {};
+  final Map<String, Future<int?>?> _pendingPings = {};
+  static const Duration _pingTimeout = Duration(seconds: 5);
 
   static final V2RayService _instance = V2RayService._internal();
   factory V2RayService() => _instance;
@@ -28,10 +29,21 @@ class V2RayService extends ChangeNotifier {
   List<String> _customDnsServers = ['1.1.1.1', '1.0.0.1'];
   bool _useDns = true;
   String? _detectedCountryCode;
+  String? _detectedIP;
+  String? _detectedCity;
+  String? _detectedRegion;
+  String? _detectedASN;
 
   V2RayStatus? get currentStatus => _currentStatus;
   V2RayConfig? get activeConfig => _activeConfig;
   bool get isConnected => _activeConfig != null;
+  String? get detectedCountryCode => _detectedCountryCode;
+  String? get detectedIP => _detectedIP;
+  String? get detectedCity => _detectedCity;
+  String? get detectedRegion => _detectedRegion;
+  String? get detectedASN => _detectedASN;
+  bool get useDns => _useDns;
+  List<String> get dnsServers => List.from(_customDnsServers);
 
   V2RayService._internal() {
     _flutterV2ray = V2ray(
@@ -69,9 +81,8 @@ class V2RayService extends ChangeNotifier {
   }
 
   Future<void> _loadDnsSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    _useDns = prefs.getBool('use_custom_dns') ?? true;
-    final dnsString = prefs.getString('custom_dns_servers');
+    _useDns = MmkvManager.decodeSettingsBool('use_custom_dns', defaultValue: true);
+    final dnsString = MmkvManager.decodeSettings('custom_dns_servers');
     if (dnsString != null && dnsString.isNotEmpty) {
       _customDnsServers = dnsString.split(',');
     }
@@ -79,16 +90,14 @@ class V2RayService extends ChangeNotifier {
   
   Future<void> _loadPingCache() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final cacheJson = prefs.getString('ping_cache');
-      if (cacheJson != null) {
-        final Map<String, dynamic> decoded = jsonDecode(cacheJson);
+      final cacheData = MmkvManager.loadPingCache();
+      if (cacheData != null) {
         final now = DateTime.now().millisecondsSinceEpoch;
-        decoded.forEach((key, value) {
+        cacheData.forEach((key, value) {
           if (value is Map && value['ping'] != null && value['timestamp'] != null) {
             final timestamp = value['timestamp'] as int;
-            if (now - timestamp < 300000) {
-              _pingCache[key] = value['ping'] as int;
+            if (now - timestamp < 3600000) {
+              _pingCache[key] = value['ping'] as int?;
             }
           }
         });
@@ -101,7 +110,6 @@ class V2RayService extends ChangeNotifier {
   
   Future<void> _savePingCache() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final Map<String, dynamic> cacheData = {};
       final now = DateTime.now().millisecondsSinceEpoch;
       _pingCache.forEach((key, value) {
@@ -112,7 +120,7 @@ class V2RayService extends ChangeNotifier {
           };
         }
       });
-      await prefs.setString('ping_cache', jsonEncode(cacheData));
+      MmkvManager.savePingCache(cacheData);
     } catch (e) {
       debugPrint('Error saving ping cache: $e');
     }
@@ -121,27 +129,12 @@ class V2RayService extends ChangeNotifier {
   Future<void> saveDnsSettings(bool enabled, List<String> servers) async {
     _useDns = enabled;
     _customDnsServers = servers;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('use_custom_dns', enabled);
-    await prefs.setString('custom_dns_servers', servers.join(','));
+    MmkvManager.encodeSettingsBool('use_custom_dns', enabled);
+    MmkvManager.encodeSettings('custom_dns_servers', servers.join(','));
     notifyListeners();
   }
   
-  bool get useDns => _useDns;
-  List<String> get dnsServers => List.from(_customDnsServers);
-  String? get detectedCountryCode => _detectedCountryCode;
-  String? _detectedIP;
-  String? _detectedCity;
-  String? _detectedRegion;
-  String? _detectedASN;
-  String? get detectedIP => _detectedIP;
-  String? get detectedCity => _detectedCity;
-  String? get detectedRegion => _detectedRegion;
-  String? get detectedASN => _detectedASN;
-
   Future<String?> detectRealCountry({int maxRetries = 3}) async {
-    debugPrint('🌍 Starting country detection...');
-    
     final ipInfoSources = [
       {
         'url': 'https://ipwho.is/',
@@ -202,9 +195,7 @@ class V2RayService extends ChangeNotifier {
       httpClient = HttpClient();
       
       if (isConnected) {
-        debugPrint('📱 VPN is connected, using SOCKS proxy for detection...');
-        final prefs = await SharedPreferences.getInstance();
-        final settingsJson = prefs.getString('app_settings');
+        final settingsJson = MmkvManager.decodeSettings('app_settings');
         AppSettings appSettings;
         if (settingsJson != null) {
           appSettings = AppSettings.fromJson(jsonDecode(settingsJson));
@@ -320,13 +311,11 @@ class V2RayService extends ChangeNotifier {
       await initialize();
       logger.log('V2Ray initialized', level: LogLevel.info);
 
-      final prefs = await SharedPreferences.getInstance();
-      
       AppSettings appSettings;
       if (settings != null) {
         appSettings = settings;
       } else {
-        final settingsJson = prefs.getString('app_settings');
+        final settingsJson = MmkvManager.decodeSettings('app_settings');
         if (settingsJson != null) {
           appSettings = AppSettings.fromJson(jsonDecode(settingsJson));
         } else {
@@ -336,7 +325,15 @@ class V2RayService extends ChangeNotifier {
       
       logger.log('App Settings loaded: proxyOnly=${appSettings.proxyOnlyMode}, mux=${appSettings.muxSettings.enabled}', level: LogLevel.info);
 
-      final blockedAppsList = prefs.getStringList('blocked_apps');
+      final blockedAppsJson = MmkvManager.decodeSettings('blocked_apps');
+      List<String>? blockedAppsList;
+      if (blockedAppsJson != null && blockedAppsJson.isNotEmpty) {
+        try {
+          blockedAppsList = List<String>.from(jsonDecode(blockedAppsJson));
+        } catch (e) {
+          debugPrint('Error parsing blocked apps: $e');
+        }
+      }
       logger.log('Blocked apps count: ${blockedAppsList?.length ?? 0}', level: LogLevel.info);
 
       logger.log('Building full config...', level: LogLevel.info);
@@ -406,81 +403,64 @@ class V2RayService extends ChangeNotifier {
     final configId = config.id;
     final hostKey = '${config.address}:${config.port}';
 
+    if (_pendingPings[configId] != null) {
+      return _pendingPings[configId];
+    }
+
+    final completer = Completer<int?>();
+    _pendingPings[configId] = completer.future;
+
     try {
       if (useCache && _pingCache.containsKey(hostKey)) {
         final cachedValue = _pingCache[hostKey];
         if (cachedValue != null && cachedValue >= 0) {
+          completer.complete(cachedValue);
           return cachedValue;
         }
       }
 
-      if (_pingInProgress[hostKey] == true) {
-        int attempts = 0;
-        while (_pingInProgress[hostKey] == true && attempts < 50) {
-          await Future.delayed(const Duration(milliseconds: 100));
-          attempts++;
-        }
-        return _pingCache[hostKey];
+      final timeoutFuture = Future.delayed(_pingTimeout, () => -1);
+      final settingsJson = MmkvManager.decodeSettings('app_settings');
+      AppSettings appSettings;
+      if (settingsJson != null) {
+        appSettings = AppSettings.fromJson(jsonDecode(settingsJson));
+      } else {
+        appSettings = AppSettings();
       }
 
-      _pingInProgress[hostKey] = true;
+      final speedtestConfig = V2RayConfigBuilder.buildConfigForSpeedtest(
+        serverConfig: config,
+        settings: appSettings,
+      );
 
-      try {
-        await initialize();
-        
-        final prefs = await SharedPreferences.getInstance();
-        final settingsJson = prefs.getString('app_settings');
-        AppSettings appSettings;
-        if (settingsJson != null) {
-          appSettings = AppSettings.fromJson(jsonDecode(settingsJson));
-        } else {
-          appSettings = AppSettings();
-        }
+      final configJson = jsonEncode(speedtestConfig);
+      final pingFuture = _flutterV2ray.measureOutboundDelay(
+        config: configJson, 
+        url: appSettings.connectionTestUrl
+      ).timeout(
+        _pingTimeout,
+        onTimeout: () => -1,
+      );
 
-        debugPrint('🔍 Testing ping for ${config.remark} (${config.address}:${config.port})');
-        debugPrint('📋 Config type: ${config.configType}');
-        
-        final speedtestConfig = V2RayConfigBuilder.buildConfigForSpeedtest(
-          serverConfig: config,
-          settings: appSettings,
-        );
-
-        final configJson = jsonEncode(speedtestConfig);
-        debugPrint('📦 Speedtest config JSON length: ${configJson.length} bytes');
-        
-        final delay = await _flutterV2ray
-            .measureOutboundDelay(config: configJson, url: appSettings.connectionTestUrl)
-            .timeout(
-              const Duration(seconds: 15),
-              onTimeout: () {
-                debugPrint('⏱️ Timeout for ${config.remark}');
-                return -1;
-              },
-            );
-
-        debugPrint('📊 Ping result for ${config.remark}: ${delay}ms');
-
-        if (delay >= 0 && delay < 10000) {
-          _pingCache[hostKey] = delay;
-          _pingCache[configId] = delay;
-          if (useCache) _savePingCache();
-        } else {
-          _pingCache[hostKey] = -1;
-          _pingCache[configId] = -1;
-        }
-        
-        _pingInProgress[hostKey] = false;
-        return delay >= 0 ? delay : null;
-      } catch (e, stackTrace) {
-        debugPrint('❌ Ping error for ${config.remark}: $e');
-        debugPrint('Stack trace: $stackTrace');
-        _pingInProgress[hostKey] = false;
+      final result = await Future.any([pingFuture, timeoutFuture]);
+      
+      if (result != null && result >= 0 && result < 10000) {
+        _pingCache[hostKey] = result;
+        _pingCache[configId] = result;
+        if (useCache) _savePingCache();
+      } else {
         _pingCache[hostKey] = -1;
-        return null;
+        _pingCache[configId] = -1;
       }
+
+      completer.complete(result);
+      return result;
     } catch (e) {
-      _pingInProgress[hostKey] = false;
-      return null;
+      _pingCache[hostKey] = -1;
+      completer.complete(-1);
+      return -1;
+    } finally {
+      _pendingPings.remove(configId);
     }
   }
 
@@ -495,8 +475,15 @@ class V2RayService extends ChangeNotifier {
 
   Future<Map<String, dynamic>> parseSubscriptionUrl(String url, {String? subscriptionId}) async {
     try {
+      debugPrint('Fetching subscription from: $url');
+      
       final response = await http
-          .get(Uri.parse(url))
+          .get(
+            Uri.parse(url),
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            },
+          )
           .timeout(
             const Duration(seconds: 60),
             onTimeout: () {
@@ -504,8 +491,16 @@ class V2RayService extends ChangeNotifier {
             },
           );
 
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body length: ${response.body.length}');
+      debugPrint('Response headers: ${response.headers}');
+
       if (response.statusCode != 200) {
         throw Exception('Failed to load subscription: HTTP ${response.statusCode}');
+      }
+
+      if (response.body.isEmpty) {
+        throw Exception('Empty response from subscription URL');
       }
 
       final configs = _parseContent(response.body, source: 'subscription', subscriptionId: subscriptionId);
@@ -614,15 +609,31 @@ class V2RayService extends ChangeNotifier {
     final List<V2RayConfig> configs = [];
 
     try {
+      content = content.trim();
+      
       if (_isBase64(content)) {
-        final decoded = utf8.decode(base64.decode(content.trim()));
-        content = decoded;
+        debugPrint('Content is base64 encoded, decoding...');
+        try {
+          String normalized = content;
+          normalized = normalized.replaceAll('-', '+').replaceAll('_', '/');
+          
+          while (normalized.length % 4 != 0) {
+            normalized += '=';
+          }
+          
+          final decoded = utf8.decode(base64.decode(normalized));
+          debugPrint('Decoded content length: ${decoded.length}');
+          content = decoded;
+        } catch (e) {
+          debugPrint('Base64 decode failed, trying original: $e');
+        }
       }
     } catch (e) {
       debugPrint('Not a valid base64 content, using original: $e');
     }
 
     final List<String> lines = content.split('\n');
+    debugPrint('Processing ${lines.length} lines');
 
     for (String line in lines) {
       line = line.trim();
@@ -669,11 +680,14 @@ class V2RayService extends ChangeNotifier {
               subscriptionId: subscriptionId,
             ),
           );
+          debugPrint('Parsed config: ${parser.remark}');
         }
       } catch (e) {
-        debugPrint('Error parsing config: $e');
+        debugPrint('Error parsing line: $e');
       }
     }
+
+    debugPrint('Total configs parsed: ${configs.length}');
 
     if (configs.isEmpty) {
       throw Exception('No valid configurations found in subscription');
@@ -692,70 +706,41 @@ class V2RayService extends ChangeNotifier {
   }
 
   Future<void> saveConfigs(List<V2RayConfig> configs) async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> configsJson = configs
-        .map((config) => jsonEncode(config.toJson()))
-        .toList();
-    await prefs.setStringList('v2ray_configs', configsJson);
+    await MmkvManager.saveConfigs(configs);
     notifyListeners();
   }
 
   Future<List<V2RayConfig>> loadConfigs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String>? configsJson = prefs.getStringList('v2ray_configs');
-    if (configsJson == null) return [];
-
-    return configsJson
-        .map((json) => V2RayConfig.fromJson(jsonDecode(json)))
-        .toList();
+    return await MmkvManager.loadConfigs();
   }
 
   Future<void> saveSubscriptions(List<Subscription> subscriptions) async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> subscriptionsJson = subscriptions
-        .map((sub) => jsonEncode(sub.toJson()))
-        .toList();
-    await prefs.setStringList('v2ray_subscriptions', subscriptionsJson);
+    await MmkvManager.saveSubscriptions(subscriptions);
   }
 
   Future<List<Subscription>> loadSubscriptions() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String>? subscriptionsJson = prefs.getStringList('v2ray_subscriptions');
-    if (subscriptionsJson == null) return [];
-
-    return subscriptionsJson
-        .map((json) => Subscription.fromJson(jsonDecode(json)))
-        .toList();
+    return await MmkvManager.loadSubscriptions();
   }
 
   Future<void> _saveActiveConfig(V2RayConfig config) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('active_config', jsonEncode(config.toJson()));
+    await MmkvManager.saveActiveConfig(config);
   }
 
   Future<void> _clearActiveConfig() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('active_config');
+    await MmkvManager.clearActiveConfig();
   }
 
   Future<V2RayConfig?> _loadActiveConfig() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? configJson = prefs.getString('active_config');
-    if (configJson == null) return null;
-    return V2RayConfig.fromJson(jsonDecode(configJson));
+    return await MmkvManager.loadActiveConfig();
   }
 
   Future<void> saveSelectedConfig(V2RayConfig config) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selected_config', jsonEncode(config.toJson()));
+    await MmkvManager.saveSelectedConfig(config);
     notifyListeners();
   }
 
   Future<V2RayConfig?> loadSelectedConfig() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? configJson = prefs.getString('selected_config');
-    if (configJson == null) return null;
-    return V2RayConfig.fromJson(jsonDecode(configJson));
+    return await MmkvManager.loadSelectedConfig();
   }
 
   Future<int?> getConnectedServerDelay() async {
@@ -764,8 +749,7 @@ class V2RayService extends ChangeNotifier {
         return null;
       }
 
-      final prefs = await SharedPreferences.getInstance();
-      final settingsJson = prefs.getString('app_settings');
+      final settingsJson = MmkvManager.decodeSettings('app_settings');
       String testUrl = 'https://www.gstatic.com/generate_204';
       
       if (settingsJson != null) {

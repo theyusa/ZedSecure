@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zedsecure/models/app_settings.dart';
+import 'package:zedsecure/services/mmkv_manager.dart';
 
 class AppSettingsService extends ChangeNotifier {
   static const String _settingsKey = 'app_settings';
@@ -44,8 +44,7 @@ class AppSettingsService extends ChangeNotifier {
   
   Future<void> loadSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_settingsKey);
+      final jsonString = MmkvManager.decodeSettings(_settingsKey);
       if (jsonString != null) {
         final json = jsonDecode(jsonString) as Map<String, dynamic>;
         _settings = AppSettings.fromJson(json);
@@ -58,9 +57,8 @@ class AppSettingsService extends ChangeNotifier {
   
   Future<void> saveSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final jsonString = jsonEncode(_settings.toJson());
-      await prefs.setString(_settingsKey, jsonString);
+      MmkvManager.encodeSettings(_settingsKey, jsonString);
       notifyListeners();
     } catch (e) {
       debugPrint('Error saving settings: $e');
@@ -196,21 +194,19 @@ class AppSettingsService extends ChangeNotifier {
     _settings = _settings.copyWith(muxSettings: mux);
     await saveSettings();
     
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('mux_enabled', mux.enabled);
-    await prefs.setInt('mux_concurrency', mux.concurrency);
-    await prefs.setInt('mux_xudp_concurrency', mux.xudpConcurrency);
-    await prefs.setString('mux_xudp_quic', mux.xudpQuic);
+    MmkvManager.encodeSettingsBool('mux_enabled', mux.enabled);
+    MmkvManager.encodeSettingsInt('mux_concurrency', mux.concurrency);
+    MmkvManager.encodeSettingsInt('mux_xudp_concurrency', mux.xudpConcurrency);
+    MmkvManager.encodeSettings('mux_xudp_quic', mux.xudpQuic);
   }
   
   Future<void> setFragmentSettings(FragmentSettings fragment) async {
     _settings = _settings.copyWith(fragmentSettings: fragment);
     await saveSettings();
     
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('fragment_enabled', fragment.enabled);
-    await prefs.setString('fragment_packets', fragment.packets);
-    await prefs.setString('fragment_length', fragment.length);
-    await prefs.setString('fragment_interval', fragment.interval);
+    MmkvManager.encodeSettingsBool('fragment_enabled', fragment.enabled);
+    MmkvManager.encodeSettings('fragment_packets', fragment.packets);
+    MmkvManager.encodeSettings('fragment_length', fragment.length);
+    MmkvManager.encodeSettings('fragment_interval', fragment.interval);
   }
 }

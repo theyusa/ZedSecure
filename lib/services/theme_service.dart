@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zedsecure/services/mmkv_manager.dart';
 
 class ThemeService extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.dark;
@@ -12,16 +12,14 @@ class ThemeService extends ChangeNotifier {
   }
 
   Future<void> _loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool('dark_mode') ?? true;
+    final isDark = MmkvManager.decodeSettingsBool('dark_mode', defaultValue: true);
     _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('dark_mode', mode == ThemeMode.dark);
+    MmkvManager.encodeSettingsBool('dark_mode', mode == ThemeMode.dark);
     notifyListeners();
   }
 
@@ -33,4 +31,3 @@ class ThemeService extends ChangeNotifier {
     }
   }
 }
-

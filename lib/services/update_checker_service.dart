@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'package:zedsecure/services/mmkv_manager.dart';
 
 class UpdateCheckerService {
   static const String _githubApiUrl = 'https://api.github.com/repos/CluvexStudio/ZedSecure/releases/latest';
@@ -12,9 +12,8 @@ class UpdateCheckerService {
 
   static Future<UpdateInfo?> checkForUpdates() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final now = DateTime.now().millisecondsSinceEpoch;
-      final lastCheck = prefs.getInt(_lastCheckKey) ?? 0;
+      final lastCheck = MmkvManager.decodeSettingsInt(_lastCheckKey) ?? 0;
 
       if (now - lastCheck < 3600000) {
         debugPrint('Update check skipped: checked less than 1 hour ago');
@@ -36,9 +35,9 @@ class UpdateCheckerService {
         final publishedAt = data['published_at'] as String?;
         final downloadUrl = data['html_url'] as String;
 
-        await prefs.setInt(_lastCheckKey, now);
+        MmkvManager.encodeSettingsInt(_lastCheckKey, now);
 
-        final skipVersion = prefs.getString(_skipVersionKey);
+        final skipVersion = MmkvManager.decodeSettings(_skipVersionKey);
         if (skipVersion == latestVersion) {
           debugPrint('Update skipped by user: $latestVersion');
           return null;
@@ -87,13 +86,11 @@ class UpdateCheckerService {
   }
 
   static Future<void> skipVersion(String version) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_skipVersionKey, version);
+    MmkvManager.encodeSettings(_skipVersionKey, version);
   }
 
   static Future<void> clearSkippedVersion() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_skipVersionKey);
+    MmkvManager.removeSettings(_skipVersionKey);
   }
 
   static String get releasesUrl => _githubReleasesUrl;

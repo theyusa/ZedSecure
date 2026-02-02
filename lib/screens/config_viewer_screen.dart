@@ -6,8 +6,8 @@ import 'package:zedsecure/models/v2ray_config.dart';
 import 'package:zedsecure/models/app_settings.dart';
 import 'package:zedsecure/services/v2ray_service.dart';
 import 'package:zedsecure/services/v2ray_config_builder.dart';
+import 'package:zedsecure/services/mmkv_manager.dart';
 import 'package:zedsecure/theme/app_theme.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class ConfigViewerScreen extends StatefulWidget {
@@ -46,8 +46,7 @@ class _ConfigViewerScreenState extends State<ConfigViewerScreen> {
 
   Future<void> _generateFullConfig() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final settingsJson = prefs.getString('app_settings');
+      final settingsJson = MmkvManager.decodeSettings('app_settings');
       AppSettings appSettings;
       if (settingsJson != null) {
         appSettings = AppSettings.fromJson(jsonDecode(settingsJson));
@@ -55,7 +54,11 @@ class _ConfigViewerScreenState extends State<ConfigViewerScreen> {
         appSettings = AppSettings();
       }
 
-      final blockedAppsList = prefs.getStringList('blocked_apps');
+      final blockedAppsJson = MmkvManager.decodeSettings('blocked_apps');
+      List<String>? blockedAppsList;
+      if (blockedAppsJson != null) {
+        blockedAppsList = List<String>.from(jsonDecode(blockedAppsJson));
+      }
 
       final fullConfig = V2RayConfigBuilder.buildFullConfig(
         serverConfig: widget.config,
