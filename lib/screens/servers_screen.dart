@@ -11,7 +11,9 @@ import 'package:zedsecure/screens/edit_config_screen.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
+import 'dart:io';
 
 class ServersScreen extends StatefulWidget {
   const ServersScreen({super.key});
@@ -291,6 +293,41 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
         }
       } else {
         await _importMultipleConfigs(configLines);
+      }
+    } catch (e) {
+      _showSnackBar('Import Failed', e.toString());
+    }
+  }
+  
+  Future<void> _importWireGuardFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+      );
+      
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
+      
+      final file = File(result.files.single.path!);
+      final fileName = result.files.single.name;
+      
+      if (!fileName.toLowerCase().endsWith('.conf')) {
+        _showSnackBar('Invalid File', 'Please select a .conf file');
+        return;
+      }
+      
+      final content = await file.readAsString();
+      
+      final service = Provider.of<V2RayService>(context, listen: false);
+      final config = await service.parseWireGuardConfigFile(content);
+      
+      if (config != null) {
+        await _loadConfigs();
+        _showSnackBar('WireGuard Config Added', '${config.remark} imported successfully');
+      } else {
+        _showSnackBar('Import Failed', 'Invalid WireGuard config file');
       }
     } catch (e) {
       _showSnackBar('Import Failed', e.toString());
@@ -768,6 +805,7 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
             children: [
               _buildIconButton(CupertinoIcons.add_circled, _showManualAddDialog, isDark),
               _buildIconButton(CupertinoIcons.doc_on_clipboard, _importFromClipboard, isDark),
+              _buildIconButton(CupertinoIcons.doc_text, _importWireGuardFile, isDark, tooltip: 'WireGuard File'),
               _buildIconButton(CupertinoIcons.qrcode_viewfinder, _scanQRCode, isDark),
               _buildIconButton(CupertinoIcons.wand_stars, _autoSelectBestServer, isDark, tooltip: 'Auto Select'),
               _isSorting

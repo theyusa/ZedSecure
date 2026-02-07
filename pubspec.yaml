@@ -2,7 +2,7 @@ name: zedsecure
 description: "A professional VPN application with iOS-style UI design"
 publish_to: 'none'
 
-version: 1.8.0+9
+version: 1.8.1+10
 
 environment:
   sdk: '>=3.9.0 <4.0.0'
@@ -31,6 +31,7 @@ dependencies:
   flutter_svg: ^2.0.17
   url_launcher: ^6.3.1
   package_info_plus: ^9.0.0
+  file_picker: ^8.1.6
 
 dev_dependencies:
   flutter_test:

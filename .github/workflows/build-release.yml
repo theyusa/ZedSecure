@@ -65,7 +65,7 @@ jobs:
           if [ "${{ github.ref_type }}" == "tag" ]; then
             VERSION="${{ github.ref_name }}"
           else
-            VERSION="v1.8.0"
+            VERSION="v1.8.1"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
@@ -122,26 +122,19 @@ jobs:
             | x86_64 | `ZedSecure-${{ steps.version.outputs.version }}-x86_64.apk` | Emulators/x86 devices |
             | Universal | `ZedSecure-${{ steps.version.outputs.version }}-universal.apk` | All devices (larger size) |
             
-            ### What's New in v1.8.0
-            
-            #### 🔄 Database Migration
-            - **MMKV Integration**: Migrated from SharedPreferences to MMKV for 100x faster performance
-            - **Multi-Process Support**: All storages use MULTI_PROCESS_MODE for VPN service compatibility
-            - **Auto Migration**: Seamless migration from old SharedPreferences data
-            - **Optimized Storage**: Separate storages for configs, subscriptions, settings, and cache
-            
-            #### 🎨 UI Improvements
-            - **Home Screen Redesign**: Improved connection info grid layout
-            - **Latency Display**: Real-time ping measurement with refresh button
-            - **Better Icons**: Circular icon containers for Download/Upload/Latency
-            - **Responsive Design**: FittedBox for speed values to prevent widget expansion
-            - **GitHub Logo**: SVG icon for better quality in About screen
+            ### What's New in v1.8.1
             
             #### 🐛 Bug Fixes
-            - Fixed duplicate code in v2ray_service.dart
-            - Fixed latency measurement timeout issues
-            - Fixed ping cache loading with proper timestamp validation
-            - Improved error handling for subscription fetching
+            - **Custom Config Connection**: Fixed custom JSON configs from subscriptions failing to connect
+            - **Custom Config Traffic Stats**: Fixed upload/download statistics for custom configs
+            - **Custom Config Ping Test**: Fixed ping test failure for custom JSON configs
+            - **Latency Display**: Simplified ping measurement after connection with manual refresh
+            - **Advanced Settings Dependencies**: Local DNS/Fake DNS dependency logic improved
+            
+            #### 🔧 Technical Changes
+            - Updated Xray-core to 26.2.4
+            - Improved config builder logic for custom JSON handling
+            - Enhanced debug logging and state management
             
             ### Installation
             

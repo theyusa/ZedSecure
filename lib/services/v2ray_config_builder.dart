@@ -11,12 +11,50 @@ class V2RayConfigBuilder {
     try {
       debugPrint('Building speedtest config for: ${serverConfig.remark}');
       
-      if (serverConfig.configType.toLowerCase() == 'custom') {
+      bool isJsonConfig = false;
+      try {
+        final decoded = jsonDecode(serverConfig.fullConfig);
+        if (decoded is Map<String, dynamic> && 
+            (decoded.containsKey('inbounds') || decoded.containsKey('outbounds'))) {
+          isJsonConfig = true;
+        }
+      } catch (e) {
+        isJsonConfig = false;
+      }
+      
+      if (isJsonConfig) {
         debugPrint('Using custom JSON config for speedtest');
         try {
           final customConfig = jsonDecode(serverConfig.fullConfig);
           if (customConfig is Map<String, dynamic>) {
-            return customConfig;
+            final speedtestConfig = Map<String, dynamic>.from(customConfig);
+            
+            speedtestConfig['log'] = {'loglevel': 'warning'};
+            speedtestConfig.remove('inbounds');
+            speedtestConfig.remove('dns');
+            speedtestConfig.remove('fakedns');
+            speedtestConfig.remove('stats');
+            speedtestConfig.remove('policy');
+            
+            if (speedtestConfig.containsKey('routing')) {
+              final routing = speedtestConfig['routing'] as Map<String, dynamic>?;
+              if (routing != null) {
+                routing['rules'] = [];
+              }
+            }
+            
+            if (speedtestConfig.containsKey('outbounds')) {
+              final outbounds = speedtestConfig['outbounds'] as List?;
+              if (outbounds != null) {
+                for (var outbound in outbounds) {
+                  if (outbound is Map<String, dynamic>) {
+                    outbound['mux'] = null;
+                  }
+                }
+              }
+            }
+            
+            return speedtestConfig;
           } else {
             throw Exception('Custom config is not a valid JSON object');
           }
@@ -74,18 +112,76 @@ class V2RayConfigBuilder {
       debugPrint('Building config for: ${serverConfig.remark}');
       debugPrint('Protocol: ${serverConfig.configType}');
       
-      if (serverConfig.configType.toLowerCase() == 'custom') {
-        debugPrint('Using custom JSON config directly');
+      bool isJsonConfig = false;
+      try {
+        final decoded = jsonDecode(serverConfig.fullConfig);
+        if (decoded is Map<String, dynamic> && 
+            (decoded.containsKey('inbounds') || decoded.containsKey('outbounds'))) {
+          isJsonConfig = true;
+        }
+      } catch (e) {
+        isJsonConfig = false;
+      }
+      
+      if (isJsonConfig) {
+        debugPrint('Using custom JSON config...');
         try {
-          final customConfig = jsonDecode(serverConfig.fullConfig);
-          if (customConfig is Map<String, dynamic>) {
-            debugPrint('Custom config parsed successfully');
-            return customConfig;
-          } else {
-            throw Exception('Custom config is not a valid JSON object');
+          final customConfig = Map<String, dynamic>.from(jsonDecode(serverConfig.fullConfig));
+          
+          debugPrint('Custom config keys: ${customConfig.keys.join(", ")}');
+          
+          if (customConfig.containsKey('outbounds') && customConfig['outbounds'] is List) {
+            final outbounds = customConfig['outbounds'] as List;
+            debugPrint('Found ${outbounds.length} outbounds');
+            
+            if (outbounds.isNotEmpty) {
+              final firstOutbound = outbounds[0];
+              if (firstOutbound is Map<String, dynamic>) {
+                final currentTag = firstOutbound['tag']?.toString() ?? '';
+                debugPrint('First outbound current tag: "$currentTag"');
+                
+                if (currentTag.isEmpty || currentTag == 'null') {
+                  firstOutbound['tag'] = 'proxy';
+                  debugPrint('Set first outbound tag to "proxy"');
+                }
+              }
+            }
+            
+            bool hasDirectTag = false;
+            bool hasBlockTag = false;
+            
+            for (var outbound in outbounds) {
+              if (outbound is Map<String, dynamic>) {
+                final tag = outbound['tag']?.toString() ?? '';
+                if (tag == 'direct') hasDirectTag = true;
+                if (tag == 'block') hasBlockTag = true;
+              }
+            }
+            
+            if (!hasDirectTag) {
+              outbounds.add({
+                'tag': 'direct',
+                'protocol': 'freedom',
+                'settings': {},
+              });
+              debugPrint('Added direct outbound');
+            }
+            
+            if (!hasBlockTag) {
+              outbounds.add({
+                'tag': 'block',
+                'protocol': 'blackhole',
+                'settings': {},
+              });
+              debugPrint('Added block outbound');
+            }
           }
-        } catch (e) {
+          
+          debugPrint('Custom config prepared successfully');
+          return customConfig;
+        } catch (e, stackTrace) {
           debugPrint('Error parsing custom config: $e');
+          debugPrint('Stack trace: $stackTrace');
           throw Exception('Invalid custom configuration JSON: $e');
         }
       }

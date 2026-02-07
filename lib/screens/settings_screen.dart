@@ -140,13 +140,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSection('Appearance', [
               Consumer<ThemeService>(
                 builder: (context, themeService, child) {
-                  return _buildSwitchTile(
-                    'Dark Mode',
-                    themeService.isDarkMode ? 'Using dark theme' : 'Using light theme',
-                    themeService.isDarkMode ? CupertinoIcons.moon_fill : CupertinoIcons.sun_max_fill,
-                    themeService.isDarkMode ? Colors.indigo : Colors.orange,
-                    themeService.isDarkMode,
-                    (value) => themeService.setThemeMode(value ? ThemeMode.dark : ThemeMode.light),
+                  final currentMode = themeService.themeMode == ThemeMode.dark 
+                      ? 'Dark' 
+                      : themeService.themeMode == ThemeMode.light 
+                          ? 'Light' 
+                          : 'Auto';
+                  
+                  return _buildNavigationTile(
+                    'Theme',
+                    currentMode,
+                    CupertinoIcons.paintbrush,
+                    Colors.indigo,
+                    () => _showThemeSelector(themeService),
                     isDark,
                   );
                 },
@@ -323,7 +328,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           child: _buildNavigationTile(
             'About ZedSecure',
-            'Version 1.8.0 • Build 2026',
+            'Version 1.8.1 • Build 2026',
             CupertinoIcons.info_circle,
             AppTheme.primaryBlue,
             () => Navigator.push(
@@ -340,6 +345,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _copyToClipboard(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
     _showSnackBar('Link Copied', 'GitHub link copied to clipboard');
+  }
+
+  Future<void> _showThemeSelector(ThemeService themeService) async {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: const Text('Select Theme'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              themeService.setThemeMode(ThemeMode.system);
+              Navigator.pop(context);
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(CupertinoIcons.device_phone_portrait, size: 20),
+                const SizedBox(width: 8),
+                const Text('Auto (System)'),
+                if (themeService.themeMode == ThemeMode.system)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue),
+                  ),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              themeService.setThemeMode(ThemeMode.light);
+              Navigator.pop(context);
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(CupertinoIcons.sun_max_fill, size: 20),
+                const SizedBox(width: 8),
+                const Text('Light'),
+                if (themeService.themeMode == ThemeMode.light)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue),
+                  ),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              themeService.setThemeMode(ThemeMode.dark);
+              Navigator.pop(context);
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(CupertinoIcons.moon_fill, size: 20),
+                const SizedBox(width: 8),
+                const Text('Dark'),
+                if (themeService.themeMode == ThemeMode.dark)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue),
+                  ),
+              ],
+            ),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
   }
 
   Future<void> _clearCache() async {

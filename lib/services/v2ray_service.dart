@@ -64,6 +64,7 @@ class V2RayService extends ChangeNotifier {
         _activeConfig != null) {
       _activeConfig = null;
       _clearActiveConfig();
+      notifyListeners();
     }
   }
 
@@ -632,6 +633,44 @@ class V2RayService extends ChangeNotifier {
       debugPrint('Not a valid base64 content, using original: $e');
     }
 
+    if (content.contains('inbounds') && content.contains('outbounds') && content.contains('routing')) {
+      debugPrint('Detected JSON format subscription');
+      try {
+        final dynamic jsonData = jsonDecode(content);
+        
+        if (jsonData is List) {
+          debugPrint('Processing JSON array with ${jsonData.length} configs');
+          for (var i = jsonData.length - 1; i >= 0; i--) {
+            try {
+              final configJson = jsonData[i];
+              if (configJson is Map<String, dynamic>) {
+                final parsedConfig = _parseJsonConfig(configJson, source, subscriptionId);
+                if (parsedConfig != null) {
+                  configs.add(parsedConfig);
+                }
+              }
+            } catch (e) {
+              debugPrint('Error parsing JSON config at index $i: $e');
+            }
+          }
+          
+          if (configs.isNotEmpty) {
+            debugPrint('Total JSON configs parsed: ${configs.length}');
+            return configs;
+          }
+        } else if (jsonData is Map<String, dynamic>) {
+          debugPrint('Processing single JSON config');
+          final parsedConfig = _parseJsonConfig(jsonData, source, subscriptionId);
+          if (parsedConfig != null) {
+            configs.add(parsedConfig);
+            return configs;
+          }
+        }
+      } catch (e) {
+        debugPrint('JSON parsing failed, falling back to line-by-line: $e');
+      }
+    }
+
     final List<String> lines = content.split('\n');
     debugPrint('Processing ${lines.length} lines');
 
@@ -703,6 +742,83 @@ class V2RayService extends ChangeNotifier {
     }
     final base64Pattern = RegExp(r'^[A-Za-z0-9+/=]+$');
     return base64Pattern.hasMatch(str);
+  }
+
+  V2RayConfig? _parseJsonConfig(Map<String, dynamic> configJson, String source, String? subscriptionId) {
+    try {
+      final remark = configJson['remarks'] ?? 'Config ${DateTime.now().millisecondsSinceEpoch}';
+      final fullConfigStr = jsonEncode(configJson);
+      
+      String address = '';
+      int port = 0;
+      String configType = 'custom';
+      
+      if (configJson['outbounds'] is List) {
+        final outbounds = configJson['outbounds'] as List;
+        
+        for (var outbound in outbounds) {
+          if (outbound is! Map) continue;
+          
+          final protocol = outbound['protocol']?.toString().toLowerCase() ?? '';
+          
+          if (protocol == 'vmess' || protocol == 'vless' || 
+              protocol == 'trojan' || protocol == 'shadowsocks' ||
+              protocol == 'socks' || protocol == 'http' ||
+              protocol == 'wireguard' || protocol == 'hysteria2' || protocol == 'hysteria') {
+            
+            configType = protocol;
+            
+            if (outbound['settings'] != null) {
+              final settings = outbound['settings'];
+              
+              if (protocol == 'vmess' || protocol == 'vless') {
+                if (settings['vnext'] is List && (settings['vnext'] as List).isNotEmpty) {
+                  final vnext = (settings['vnext'] as List)[0];
+                  address = vnext['address'] ?? '';
+                  port = vnext['port'] ?? 0;
+                }
+              } else if (protocol == 'shadowsocks' || protocol == 'socks' || 
+                         protocol == 'http' || protocol == 'trojan') {
+                if (settings['servers'] is List && (settings['servers'] as List).isNotEmpty) {
+                  final server = (settings['servers'] as List)[0];
+                  address = server['address'] ?? '';
+                  port = server['port'] ?? 0;
+                }
+              } else if (protocol == 'wireguard') {
+                if (settings['peers'] is List && (settings['peers'] as List).isNotEmpty) {
+                  final peer = (settings['peers'] as List)[0];
+                  final endpoint = peer['endpoint']?.toString() ?? '';
+                  if (endpoint.contains(':')) {
+                    final parts = endpoint.split(':');
+                    address = parts[0];
+                    port = int.tryParse(parts[1]) ?? 0;
+                  }
+                }
+              } else if (protocol == 'hysteria2' || protocol == 'hysteria') {
+                address = settings['address']?.toString() ?? '';
+                port = settings['port'] ?? 0;
+              }
+            }
+            
+            break;
+          }
+        }
+      }
+      
+      return V2RayConfig(
+        id: DateTime.now().millisecondsSinceEpoch.toString() + '_' + (address + port.toString()).hashCode.toString(),
+        remark: remark,
+        address: address,
+        port: port,
+        configType: configType,
+        fullConfig: fullConfigStr,
+        source: source,
+        subscriptionId: subscriptionId,
+      );
+    } catch (e) {
+      debugPrint('Error parsing JSON config: $e');
+      return null;
+    }
   }
 
   Future<void> saveConfigs(List<V2RayConfig> configs) async {
@@ -805,6 +921,78 @@ class V2RayService extends ChangeNotifier {
 
   int? getCachedPing(String configId) {
     return _pingCache[configId];
+  }
+
+  Future<V2RayConfig?> parseWireGuardConfigFile(String fileContent) async {
+    try {
+      debugPrint('Parsing WireGuard config file...');
+      
+      final Map<String, String> interfaceParams = {};
+      final Map<String, String> peerParams = {};
+      String? currentSection;
+
+      final lines = fileContent.split('\n');
+      for (final line in lines) {
+        final trimmedLine = line.trim();
+        
+        if (trimmedLine.isEmpty || trimmedLine.startsWith('#')) {
+          continue;
+        }
+        
+        if (trimmedLine.toLowerCase().startsWith('[interface]')) {
+          currentSection = 'Interface';
+          continue;
+        } else if (trimmedLine.toLowerCase().startsWith('[peer]')) {
+          currentSection = 'Peer';
+          continue;
+        }
+        
+        if (currentSection != null && trimmedLine.contains('=')) {
+          final parts = trimmedLine.split('=');
+          if (parts.length == 2) {
+            final key = parts[0].trim().toLowerCase();
+            final value = parts[1].trim();
+            
+            if (currentSection == 'Interface') {
+              interfaceParams[key] = value;
+            } else if (currentSection == 'Peer') {
+              peerParams[key] = value;
+            }
+          }
+        }
+      }
+      
+      final privateKey = interfaceParams['privatekey'] ?? '';
+      final address = interfaceParams['address'] ?? '172.16.0.2/32';
+      final mtu = interfaceParams['mtu'] ?? '1420';
+      final publicKey = peerParams['publickey'] ?? '';
+      final presharedKey = peerParams['presharedkey'];
+      final endpoint = peerParams['endpoint'] ?? '';
+      final reserved = peerParams['reserved'] ?? '0,0,0';
+      
+      if (privateKey.isEmpty || publicKey.isEmpty || endpoint.isEmpty) {
+        throw Exception('Missing required WireGuard parameters');
+      }
+      
+      final endpointParts = endpoint.split(':');
+      final server = endpointParts[0];
+      final port = endpointParts.length > 1 ? endpointParts[1] : '51820';
+      
+      final wireguardUrl = 'wireguard://$privateKey@$server:$port?'
+          'publickey=$publicKey'
+          '&address=${Uri.encodeComponent(address)}'
+          '&mtu=$mtu'
+          '&reserved=${Uri.encodeComponent(reserved)}'
+          '${presharedKey != null ? '&presharedkey=$presharedKey' : ''}'
+          '#WireGuard_${DateTime.now().millisecondsSinceEpoch}';
+      
+      debugPrint('Generated WireGuard URL: $wireguardUrl');
+      
+      return await parseConfigFromClipboard(wireguardUrl);
+    } catch (e) {
+      debugPrint('Error parsing WireGuard config file: $e');
+      throw Exception('Failed to parse WireGuard config: ${e.toString()}');
+    }
   }
 
   Future<void> _tryRestoreActiveConfig() async {

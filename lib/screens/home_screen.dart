@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:ui';
 import 'dart:math' as math;
+import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zedsecure/services/v2ray_service.dart';
@@ -1096,60 +1097,65 @@ class _PingTextWidgetState extends State<_PingTextWidget> {
   @override
   void initState() {
     super.initState();
-    widget.service.addListener(_onServiceChanged);
-    _loadPing();
-  }
-
-  @override
-  void dispose() {
-    widget.service.removeListener(_onServiceChanged);
-    super.dispose();
-  }
-
-  void _onServiceChanged() {
-    if (mounted) {
+    if (widget.service.isConnected) {
       _loadPing();
     }
   }
 
-  Future<void> refresh() async {
-    await _loadPing();
-  }
-
-  Future<void> _loadPing() async {
-    if (!mounted) return;
+  @override
+  void didUpdateWidget(_PingTextWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
     
-    if (!widget.service.isConnected) {
+    final wasConnected = oldWidget.service.isConnected;
+    final isNowConnected = widget.service.isConnected;
+    
+    if (isNowConnected && !wasConnected) {
+      _loadPing();
+    } else if (!isNowConnected && wasConnected) {
       if (mounted) {
         setState(() {
           _ping = null;
           _isLoading = false;
         });
       }
-      return;
     }
+  }
+
+  Future<void> refresh() async {
+    if (_isLoading || !widget.service.isConnected) return;
+    await _loadPing();
+  }
+
+  Future<void> _loadPing() async {
+    if (!mounted || !widget.service.isConnected || _isLoading) return;
     
     setState(() => _isLoading = true);
     
     try {
       debugPrint('🔍 Starting ping measurement...');
+      final startTime = DateTime.now();
+      
       final ping = await widget.service.getConnectedServerDelay()
           .timeout(
             const Duration(seconds: 10),
             onTimeout: () {
-              debugPrint('⏱️ Ping measurement timeout');
+              debugPrint('⏱️ Ping measurement timeout after 10 seconds');
               return null;
             },
           );
-      debugPrint('✅ Ping result: $ping ms');
+      
+      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+      debugPrint('✅ Ping completed in ${elapsed}ms, result: $ping ms');
+      
       if (mounted) {
         setState(() {
           _ping = ping;
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Error loading ping: $e');
+      debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
           _ping = null;
@@ -1161,6 +1167,17 @@ class _PingTextWidgetState extends State<_PingTextWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.service.isConnected) {
+      return Text(
+        'Not connected',
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.systemGray,
+        ),
+      );
+    }
+
     if (_isLoading) {
       return Text(
         'Measuring...',

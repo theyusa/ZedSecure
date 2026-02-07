@@ -61,11 +61,11 @@ class AboutScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildInfoRow('App Version', '1.8.0 • Build 2026', isDark),
+                  _buildInfoRow('App Version', '1.8.1 • Build 2026', isDark),
                   const SizedBox(height: 16),
                   Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
                   const SizedBox(height: 16),
-                  _buildInfoRow('Core Version', 'Xray-core 26.1.23', isDark),
+                  _buildInfoRow('Core Version', 'Xray-core 26.2.2', isDark),
                 ],
               ),
             ),
@@ -81,6 +81,7 @@ class AboutScreen extends StatelessWidget {
                 const SizedBox(width: 16),
                 _buildGitHubButton(
                   () => _launchUrl('https://github.com/CluvexStudio/ZedSecure'),
+                  context,
                 ),
               ],
             ),
@@ -160,7 +161,7 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGitHubButton(VoidCallback onTap) {
+  Widget _buildGitHubButton(VoidCallback onTap, BuildContext context) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(28),
@@ -175,8 +176,10 @@ class AboutScreen extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: SvgPicture.asset(
             'assets/images/github.svg',
-            colorFilter: const ColorFilter.mode(
-              Colors.black87,
+            colorFilter: ColorFilter.mode(
+              Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.white 
+                  : Colors.black87,
               BlendMode.srcIn,
             ),
           ),

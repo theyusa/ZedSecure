@@ -42,6 +42,12 @@ class AppSettingsService extends ChangeNotifier {
   MuxSettings get muxSettings => _settings.muxSettings;
   FragmentSettings get fragmentSettings => _settings.fragmentSettings;
   
+  String get uiModeNight => _settings.uiModeNight;
+  bool get useHevTunnel => _settings.useHevTunnel;
+  String get hevTunnelLogLevel => _settings.hevTunnelLogLevel;
+  String get hevTunnelRwTimeout => _settings.hevTunnelRwTimeout;
+  String get mode => _settings.mode;
+  
   Future<void> loadSettings() async {
     try {
       final jsonString = MmkvManager.decodeSettings(_settingsKey);
@@ -71,7 +77,14 @@ class AppSettingsService extends ChangeNotifier {
   }
   
   Future<void> setLocalDnsEnabled(bool value) async {
-    _settings = _settings.copyWith(localDnsEnabled: value);
+    if (value) {
+      _settings = _settings.copyWith(
+        localDnsEnabled: value,
+        fakeDnsEnabled: true,
+      );
+    } else {
+      _settings = _settings.copyWith(localDnsEnabled: value);
+    }
     await saveSettings();
   }
   
@@ -208,5 +221,30 @@ class AppSettingsService extends ChangeNotifier {
     MmkvManager.encodeSettings('fragment_packets', fragment.packets);
     MmkvManager.encodeSettings('fragment_length', fragment.length);
     MmkvManager.encodeSettings('fragment_interval', fragment.interval);
+  }
+  
+  Future<void> setUiModeNight(String value) async {
+    _settings = _settings.copyWith(uiModeNight: value);
+    await saveSettings();
+  }
+  
+  Future<void> setUseHevTunnel(bool value) async {
+    _settings = _settings.copyWith(useHevTunnel: value);
+    await saveSettings();
+  }
+  
+  Future<void> setHevTunnelLogLevel(String value) async {
+    _settings = _settings.copyWith(hevTunnelLogLevel: value);
+    await saveSettings();
+  }
+  
+  Future<void> setHevTunnelRwTimeout(String value) async {
+    _settings = _settings.copyWith(hevTunnelRwTimeout: value);
+    await saveSettings();
+  }
+  
+  Future<void> setMode(String value) async {
+    _settings = _settings.copyWith(mode: value);
+    await saveSettings();
   }
 }

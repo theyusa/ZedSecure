@@ -2,6 +2,37 @@
 
 All notable changes to ZedSecure VPN will be documented in this file.
 
+## [1.8.1] - 2026-02-07
+
+### 🐛 Bug Fixes
+- **Custom Config Connection**: Fixed custom JSON configs from subscriptions failing to connect
+  - Changed detection logic to parse JSON structure instead of checking configType
+  - Now properly detects configs with inbounds/outbounds keys
+- **Custom Config Traffic Stats**: Fixed upload/download statistics for custom configs
+  - Ensures first outbound has 'proxy' tag
+  - Adds 'direct' and 'block' outbounds if missing
+- **Custom Config Ping Test**: Fixed ping test failure for custom JSON configs
+  - Modified speedtest config builder to handle JSON configs properly
+  - Removes unnecessary inbounds, dns, routing for accurate ping
+- **Latency Display**: Simplified ping measurement after connection
+  - Removed automatic timer to prevent overlap issues
+  - Single ping on connect with manual refresh button
+  - Increased timeout to 10 seconds
+- **Advanced Settings Dependencies**:
+  - Local DNS now automatically enables Fake DNS when activated
+  - Fake DNS switch disabled when Local DNS is active
+  - Mux dialog shows message when disabled
+  - Fragment dialog shows message when disabled
+
+### 🔧 Technical Changes
+- Updated version to 1.8.1+10
+- Updated Xray-core to 26.2.4
+- Improved config builder logic for custom JSON handling
+- Enhanced debug logging for troubleshooting
+- Better state management for ping measurements
+
+---
+
 ## [1.8.0] - 2026-02-02
 
 ### 🔄 Database Migration

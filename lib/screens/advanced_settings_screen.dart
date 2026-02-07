@@ -55,7 +55,12 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               CupertinoIcons.globe,
               AppTheme.primaryBlue,
               service.localDnsEnabled,
-              (value) => service.setLocalDnsEnabled(value),
+              (value) async {
+                await service.setLocalDnsEnabled(value);
+                if (value) {
+                  await service.setFakeDnsEnabled(true);
+                }
+              },
               isDark,
             ),
             _buildSwitchTile(
@@ -66,6 +71,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               service.fakeDnsEnabled,
               (value) => service.setFakeDnsEnabled(value),
               isDark,
+              enabled: !service.localDnsEnabled,
             ),
             _buildSwitchTile(
               'HTTP Proxy',
@@ -296,14 +302,54 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
           ], isDark),
           const SizedBox(height: 20),
           _buildSection('MODE', [
+            _buildDropdownTile(
+              'Mode',
+              service.mode,
+              ['VPN', 'Proxy'],
+              CupertinoIcons.arrow_right_arrow_left_circle,
+              Colors.indigo,
+              (value) => service.setMode(value),
+              isDark,
+            ),
             _buildSwitchTile(
               'Proxy Only Mode',
-              'Use proxy without VPN',
+              'Use proxy without VPN (deprecated)',
               CupertinoIcons.arrow_right_arrow_left,
-              Colors.indigo,
+              Colors.grey,
               service.proxyOnlyMode,
               (value) => service.setProxyOnlyMode(value),
               isDark,
+            ),
+          ], isDark),
+          const SizedBox(height: 20),
+          _buildSection('HEVTUN SETTINGS', [
+            _buildSwitchTile(
+              'Use HevTun',
+              'HevTun tunnel (Always enabled)',
+              CupertinoIcons.arrow_up_arrow_down_circle,
+              AppTheme.primaryBlue,
+              true,
+              (value) {},
+              isDark,
+              enabled: false,
+            ),
+            _buildDropdownTile(
+              'Log Level',
+              service.hevTunnelLogLevel,
+              ['debug', 'info', 'warn', 'error', 'silent'],
+              CupertinoIcons.doc_plaintext,
+              Colors.orange,
+              (value) => service.setHevTunnelLogLevel(value),
+              isDark,
+            ),
+            _buildTextFieldTile(
+              'RW Timeout',
+              service.hevTunnelRwTimeout,
+              CupertinoIcons.timer,
+              Colors.purple,
+              (value) => service.setHevTunnelRwTimeout(value),
+              isDark,
+              hint: '300,60',
             ),
           ], isDark),
           const SizedBox(height: 100),
@@ -353,7 +399,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
     );
   }
 
-  Widget _buildSwitchTile(String title, String subtitle, IconData icon, Color color, bool value, ValueChanged<bool> onChanged, bool isDark) {
+  Widget _buildSwitchTile(String title, String subtitle, IconData icon, Color color, bool value, ValueChanged<bool> onChanged, bool isDark, {bool enabled = true}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -362,22 +408,22 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withOpacity(enabled ? 0.15 : 0.05),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Center(child: Icon(icon, color: color, size: 20)),
+            child: Center(child: Icon(icon, color: color.withOpacity(enabled ? 1.0 : 0.3), size: 20)),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontSize: 16, color: isDark ? Colors.white : Colors.black)),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: AppTheme.systemGray)),
+                Text(title, style: TextStyle(fontSize: 16, color: (isDark ? Colors.white : Colors.black).withOpacity(enabled ? 1.0 : 0.4))),
+                Text(subtitle, style: TextStyle(fontSize: 12, color: AppTheme.systemGray.withOpacity(enabled ? 1.0 : 0.6))),
               ],
             ),
           ),
-          CupertinoSwitch(value: value, onChanged: onChanged, activeTrackColor: AppTheme.connectedGreen),
+          CupertinoSwitch(value: value, onChanged: enabled ? onChanged : null, activeTrackColor: AppTheme.connectedGreen),
         ],
       ),
     );
@@ -663,6 +709,12 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                       ),
                     ],
                   ),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Enable Mux to configure options',
+                    style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
+                  ),
                 ],
               ],
             ),
@@ -784,6 +836,12 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                         ),
                       ),
                     ],
+                  ),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Enable Fragment to configure options',
+                    style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
                   ),
                 ],
               ],

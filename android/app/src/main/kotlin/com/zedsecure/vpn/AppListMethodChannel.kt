@@ -29,9 +29,21 @@ class AppListMethodChannel(private val context: Context) : MethodCallHandler {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val packageManager = context.packageManager
-                        val installedPackages = packageManager.getInstalledPackages(
+                        
+                        val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            PackageManager.PackageInfoFlags.of(
+                                (PackageManager.GET_META_DATA or PackageManager.MATCH_UNINSTALLED_PACKAGES).toLong()
+                            )
+                        } else {
                             PackageManager.GET_META_DATA or PackageManager.MATCH_UNINSTALLED_PACKAGES
-                        )
+                        }
+                        
+                        val installedPackages = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            packageManager.getInstalledPackages(flags as PackageManager.PackageInfoFlags)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            packageManager.getInstalledPackages(flags as Int)
+                        }
                         
                         val appList = mutableListOf<Map<String, Any>>()
                         
@@ -40,6 +52,10 @@ class AppListMethodChannel(private val context: Context) : MethodCallHandler {
                                 val appInfo = pkg.applicationInfo ?: continue
                                 
                                 if (appInfo.packageName == context.packageName) {
+                                    continue
+                                }
+                                
+                                if (appInfo.enabled == false) {
                                     continue
                                 }
                                 
@@ -74,7 +90,7 @@ class AppListMethodChannel(private val context: Context) : MethodCallHandler {
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            result.error("APP_LIST_ERROR", "Failed to get installed apps", e.message)
+                            result.error("APP_LIST_ERROR", "Failed to get installed apps: ${e.message}", e.stackTraceToString())
                         }
                     }
                 }

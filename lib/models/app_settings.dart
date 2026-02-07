@@ -111,6 +111,12 @@ class AppSettings {
   final MuxSettings muxSettings;
   final FragmentSettings fragmentSettings;
   
+  final String uiModeNight;
+  final bool useHevTunnel;
+  final String hevTunnelLogLevel;
+  final String hevTunnelRwTimeout;
+  final String mode;
+  
   AppSettings({
     this.preferIpv6 = false,
     this.localDnsEnabled = false,
@@ -143,6 +149,12 @@ class AppSettings {
     this.dnsServers = const ['8.8.8.8', '8.8.4.4'],
     MuxSettings? muxSettings,
     FragmentSettings? fragmentSettings,
+    
+    this.uiModeNight = 'auto',
+    this.useHevTunnel = true,
+    this.hevTunnelLogLevel = 'warn',
+    this.hevTunnelRwTimeout = '300,60',
+    this.mode = 'VPN',
   }) : muxSettings = muxSettings ?? MuxSettings(),
        fragmentSettings = fragmentSettings ?? FragmentSettings();
   
@@ -178,6 +190,12 @@ class AppSettings {
     'dnsServers': dnsServers,
     'muxSettings': muxSettings.toJson(),
     'fragmentSettings': fragmentSettings.toJson(),
+    
+    'uiModeNight': uiModeNight,
+    'useHevTunnel': useHevTunnel,
+    'hevTunnelLogLevel': hevTunnelLogLevel,
+    'hevTunnelRwTimeout': hevTunnelRwTimeout,
+    'mode': mode,
   };
   
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
@@ -212,6 +230,12 @@ class AppSettings {
     dnsServers: (json['dnsServers'] as List?)?.cast<String>() ?? ['8.8.8.8', '8.8.4.4'],
     muxSettings: json['muxSettings'] != null ? MuxSettings.fromJson(json['muxSettings']) : null,
     fragmentSettings: json['fragmentSettings'] != null ? FragmentSettings.fromJson(json['fragmentSettings']) : null,
+    
+    uiModeNight: json['uiModeNight'] ?? 'auto',
+    useHevTunnel: json['useHevTunnel'] ?? true,
+    hevTunnelLogLevel: json['hevTunnelLogLevel'] ?? 'warn',
+    hevTunnelRwTimeout: json['hevTunnelRwTimeout'] ?? '300,60',
+    mode: json['mode'] ?? 'VPN',
   );
   
   AppSettings copyWith({
@@ -246,6 +270,12 @@ class AppSettings {
     List<String>? dnsServers,
     MuxSettings? muxSettings,
     FragmentSettings? fragmentSettings,
+    
+    String? uiModeNight,
+    bool? useHevTunnel,
+    String? hevTunnelLogLevel,
+    String? hevTunnelRwTimeout,
+    String? mode,
   }) => AppSettings(
     preferIpv6: preferIpv6 ?? this.preferIpv6,
     localDnsEnabled: localDnsEnabled ?? this.localDnsEnabled,
@@ -278,5 +308,11 @@ class AppSettings {
     dnsServers: dnsServers ?? this.dnsServers,
     muxSettings: muxSettings ?? this.muxSettings,
     fragmentSettings: fragmentSettings ?? this.fragmentSettings,
+    
+    uiModeNight: uiModeNight ?? this.uiModeNight,
+    useHevTunnel: useHevTunnel ?? this.useHevTunnel,
+    hevTunnelLogLevel: hevTunnelLogLevel ?? this.hevTunnelLogLevel,
+    hevTunnelRwTimeout: hevTunnelRwTimeout ?? this.hevTunnelRwTimeout,
+    mode: mode ?? this.mode,
   );
 }
