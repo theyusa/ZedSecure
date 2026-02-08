@@ -44,8 +44,10 @@ class V2rayProxyOnlyService : Service(), V2rayServicesListener {
             }
             AppConfigs.V2RAY_SERVICE_COMMANDS.MEASURE_DELAY -> {
                 Thread({
+                    val url = intent?.getStringExtra("URL") ?: "https://www.gstatic.com/generate_204"
+                    val delay = V2rayCoreManager.getInstance().getConnectedV2rayServerDelay(url)
                     val sendIntent = Intent("CONNECTED_V2RAY_SERVER_DELAY")
-                    sendIntent.putExtra("DELAY", V2rayCoreManager.getInstance().connectedV2rayServerDelay.toString())
+                    sendIntent.putExtra("DELAY", delay.toString())
                     sendBroadcast(sendIntent)
                 }, "MEASURE_CONNECTED_V2RAY_SERVER_DELAY").start()
             }

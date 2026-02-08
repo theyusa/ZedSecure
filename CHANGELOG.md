@@ -2,9 +2,18 @@
 
 All notable changes to ZedSecure VPN will be documented in this file.
 
-## [1.8.1] - 2026-02-07
+## [1.8.1] - 2026-02-08
 
 ### 🐛 Bug Fixes
+- **Ping After Connection**: Fixed ping measurement showing "Measuring..." indefinitely after connection
+  - Root cause: V2Ray Core runs in separate process (VPN Service), app process couldn't access it
+  - Solution: Implemented IPC (Inter-Process Communication) using Intent and BroadcastReceiver
+  - Changed from direct core access to Intent-based method matching v2rayNG implementation
+  - Increased timeout from 3s to 15s for better reliability
+- **Multiple Ping Requests**: Fixed excessive ping requests causing performance issues
+  - Root cause: GlobalKey recreated on every widget rebuild
+  - Solution: Moved `_pingKey` to State class as permanent field
+  - Now pings only once on connection with manual refresh button
 - **Custom Config Connection**: Fixed custom JSON configs from subscriptions failing to connect
   - Changed detection logic to parse JSON structure instead of checking configType
   - Now properly detects configs with inbounds/outbounds keys
@@ -14,10 +23,6 @@ All notable changes to ZedSecure VPN will be documented in this file.
 - **Custom Config Ping Test**: Fixed ping test failure for custom JSON configs
   - Modified speedtest config builder to handle JSON configs properly
   - Removes unnecessary inbounds, dns, routing for accurate ping
-- **Latency Display**: Simplified ping measurement after connection
-  - Removed automatic timer to prevent overlap issues
-  - Single ping on connect with manual refresh button
-  - Increased timeout to 10 seconds
 - **Advanced Settings Dependencies**:
   - Local DNS now automatically enables Fake DNS when activated
   - Fake DNS switch disabled when Local DNS is active
@@ -27,9 +32,12 @@ All notable changes to ZedSecure VPN will be documented in this file.
 ### 🔧 Technical Changes
 - Updated version to 1.8.1+10
 - Updated Xray-core to 26.2.4
-- Improved config builder logic for custom JSON handling
-- Enhanced debug logging for troubleshooting
+- Implemented proper IPC for cross-process communication
+- Enhanced V2rayController with URL parameter support
+- Improved V2rayVPNService and V2rayProxyOnlyService to handle URL in MEASURE_DELAY
+- Added comprehensive logging for debugging ping issues
 - Better state management for ping measurements
+- Improved config builder logic for custom JSON handling
 
 ---
 

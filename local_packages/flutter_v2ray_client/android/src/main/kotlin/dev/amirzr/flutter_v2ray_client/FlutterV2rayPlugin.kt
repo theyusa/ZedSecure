@@ -141,11 +141,17 @@ class FlutterV2rayPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Activity
                     }
                 }
                 "getConnectedServerDelay" -> {
+                    android.util.Log.d("FlutterV2rayPlugin", "getConnectedServerDelay called from Flutter")
                     executor.submit {
                         try {
                             val url: String? = call.argument("url")
-                            result.success(V2rayController.getConnectedV2rayServerDelayDirect(url))
+                            android.util.Log.d("FlutterV2rayPlugin", "getConnectedServerDelay => url: $url, using Intent-based method")
+                            
+                            val delay = V2rayController.getConnectedV2rayServerDelay(binding.applicationContext, url)
+                            android.util.Log.d("FlutterV2rayPlugin", "getConnectedServerDelay => delay: $delay")
+                            result.success(delay)
                         } catch (e: Exception) {
+                            android.util.Log.e("FlutterV2rayPlugin", "getConnectedServerDelay failed", e)
                             result.success(-1)
                         }
                     }

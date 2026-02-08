@@ -125,16 +125,24 @@ jobs:
             ### What's New in v1.8.1
             
             #### 🐛 Bug Fixes
+            - **Ping After Connection**: Fixed ping measurement showing "Measuring..." indefinitely
+              - Implemented IPC (Inter-Process Communication) for cross-process core access
+              - Changed from direct core access to Intent-based method
+              - Increased timeout from 3s to 15s for better reliability
+            - **Multiple Ping Requests**: Fixed excessive ping requests causing performance issues
+              - Moved GlobalKey to State class to prevent recreation on rebuild
+              - Now pings only once on connection with manual refresh button
             - **Custom Config Connection**: Fixed custom JSON configs from subscriptions failing to connect
             - **Custom Config Traffic Stats**: Fixed upload/download statistics for custom configs
             - **Custom Config Ping Test**: Fixed ping test failure for custom JSON configs
-            - **Latency Display**: Simplified ping measurement after connection with manual refresh
             - **Advanced Settings Dependencies**: Local DNS/Fake DNS dependency logic improved
             
             #### 🔧 Technical Changes
             - Updated Xray-core to 26.2.4
+            - Implemented proper IPC for V2Ray Core communication
+            - Enhanced V2rayController with URL parameter support
             - Improved config builder logic for custom JSON handling
-            - Enhanced debug logging and state management
+            - Added comprehensive logging for debugging
             
             ### Installation
             

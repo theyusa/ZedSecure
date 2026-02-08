@@ -129,7 +129,7 @@ class AppSettings {
     this.routeOnlyEnabled = false,
     this.proxySharingEnabled = false,
     this.allowInsecure = false,
-    this.socksPort = 10808,
+    this.socksPort = 10809,
     this.remoteDns = 'https://1.1.1.1/dns-query,https://8.8.8.8/dns-query',
     this.domesticDns = 'https+local://223.5.5.5/dns-query',
     this.dnsHosts = '',

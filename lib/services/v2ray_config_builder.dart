@@ -130,6 +130,28 @@ class V2RayConfigBuilder {
           
           debugPrint('Custom config keys: ${customConfig.keys.join(", ")}');
           
+          if (!customConfig.containsKey('inbounds') || customConfig['inbounds'] is! List || (customConfig['inbounds'] as List).isEmpty) {
+            debugPrint('No inbounds found, adding socks inbound for hevTun');
+            customConfig['inbounds'] = [
+              {
+                'listen': '127.0.0.1',
+                'port': settings.socksPort,
+                'protocol': 'socks',
+                'settings': {
+                  'auth': 'noauth',
+                  'udp': true,
+                  'userLevel': 8,
+                },
+                'sniffing': {
+                  'destOverride': ['http', 'tls'],
+                  'enabled': true,
+                  'routeOnly': false,
+                },
+                'tag': 'socks',
+              }
+            ];
+          }
+          
           if (customConfig.containsKey('outbounds') && customConfig['outbounds'] is List) {
             final outbounds = customConfig['outbounds'] as List;
             debugPrint('Found ${outbounds.length} outbounds');
@@ -175,6 +197,18 @@ class V2RayConfigBuilder {
               });
               debugPrint('Added block outbound');
             }
+          }
+          
+          if (!customConfig.containsKey('log')) {
+            customConfig['log'] = {'loglevel': settings.coreLogLevel};
+          }
+          
+          if (!customConfig.containsKey('dns')) {
+            customConfig['dns'] = _buildDns(settings);
+          }
+          
+          if (!customConfig.containsKey('routing')) {
+            customConfig['routing'] = _buildRouting(settings);
           }
           
           debugPrint('Custom config prepared successfully');

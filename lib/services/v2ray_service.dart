@@ -861,7 +861,10 @@ class V2RayService extends ChangeNotifier {
 
   Future<int?> getConnectedServerDelay() async {
     try {
+      debugPrint('📞 getConnectedServerDelay called, isConnected=$isConnected, activeConfig=${_activeConfig?.remark}');
+      
       if (!isConnected || _activeConfig == null) {
+        debugPrint('❌ Not connected or no active config');
         return null;
       }
 
@@ -877,7 +880,10 @@ class V2RayService extends ChangeNotifier {
         }
       }
 
+      debugPrint('🌐 Calling Flutter V2Ray getConnectedServerDelay with url: $testUrl');
       final delay = await _flutterV2ray.getConnectedServerDelay(url: testUrl);
+      debugPrint('📊 Flutter V2Ray returned delay: $delay');
+      
       if (delay >= 0) {
         return delay;
       }
@@ -895,8 +901,9 @@ class V2RayService extends ChangeNotifier {
       }
 
       return null;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error getting connected server delay: $e');
+      debugPrint('Stack trace: $stackTrace');
       
       if (_activeConfig != null) {
         try {

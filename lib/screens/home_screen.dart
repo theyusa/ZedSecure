@@ -24,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _rotationController;
   late AnimationController _pulseController;
   V2RayConfig? _selectedConfig;
+  final GlobalKey<_PingTextWidgetState> _pingKey = GlobalKey<_PingTextWidgetState>();
 
   @override
   void initState() {
@@ -557,7 +558,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final status = service.currentStatus;
     final detectedCountryCode = service.detectedCountryCode ?? 'XX';
     final detectedIP = service.detectedIP;
-    final pingKey = GlobalKey<_PingTextWidgetState>();
     
     return Column(
       children: [
@@ -687,12 +687,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        _PingTextWidget(key: pingKey, service: service, isDark: isDark),
+                        _PingTextWidget(key: _pingKey, service: service, isDark: isDark),
                       ],
                     ),
                   ),
                   _PingRefreshButton(
-                    pingKey: pingKey,
+                    pingKey: _pingKey,
                     isDark: isDark,
                   ),
                 ],

@@ -176,6 +176,7 @@ class V2rayCoreManager private constructor() {
             v2rayConfig.ENABLE_TRAFFIC_STATICS
         )
         V2RAY_STATE = AppConfigs.V2RAY_STATES.V2RAY_CONNECTING
+        AppConfigs.V2RAY_STATE = AppConfigs.V2RAY_STATES.V2RAY_CONNECTING
         
         if (!isLibV2rayCoreInitialized) {
             Log.e(TAG, "startCore failed => LibV2rayCore should be initialize before start.")
@@ -194,6 +195,7 @@ class V2rayCoreManager private constructor() {
             
             coreController?.startLoop(v2rayConfig.V2RAY_FULL_JSON_CONFIG, tunFd)
             V2RAY_STATE = AppConfigs.V2RAY_STATES.V2RAY_CONNECTED
+            AppConfigs.V2RAY_STATE = AppConfigs.V2RAY_STATES.V2RAY_CONNECTED
             
             if (isV2rayCoreRunning) {
                 showNotification(v2rayConfig)
@@ -227,6 +229,7 @@ class V2rayCoreManager private constructor() {
     
     private fun sendDisconnectedBroadCast() {
         V2RAY_STATE = AppConfigs.V2RAY_STATES.V2RAY_DISCONNECTED
+        AppConfigs.V2RAY_STATE = AppConfigs.V2RAY_STATES.V2RAY_DISCONNECTED
         SERVICE_DURATION = "00:00:00"
         seconds = 0
         minutes = 0
@@ -456,8 +459,16 @@ class V2rayCoreManager private constructor() {
     
     fun getConnectedV2rayServerDelay(url: String): Long {
         return try {
-            coreController?.measureDelay(url) ?: -1L
+            if (!isV2rayCoreRunning) {
+                Log.e(TAG, "getConnectedV2rayServerDelay => core not running")
+                return -1L
+            }
+            Log.d(TAG, "getConnectedV2rayServerDelay => measuring delay with url: $url")
+            val delay = coreController?.measureDelay(url) ?: -1L
+            Log.d(TAG, "getConnectedV2rayServerDelay => result: $delay ms")
+            delay
         } catch (e: Exception) {
+            Log.e(TAG, "getConnectedV2rayServerDelay failed =>", e)
             -1L
         }
     }

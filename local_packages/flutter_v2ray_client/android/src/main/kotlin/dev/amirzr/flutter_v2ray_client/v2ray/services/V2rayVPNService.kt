@@ -55,9 +55,9 @@ class V2rayVPNService : VpnService(), V2rayServicesListener {
                 setup()
                 
                 v2rayConfig?.let { config ->
-                    val tunFd = mInterface?.fd ?: 0
+                    val tunFd = 0
                     if (V2rayCoreManager.getInstance().startCore(config, tunFd)) {
-                        Log.d(TAG, "V2ray core started successfully with tunFd=$tunFd")
+                        Log.d(TAG, "V2ray core started successfully with tunFd=$tunFd (hevTun mode)")
                         startHevTun()
                     } else {
                         onDestroy()
@@ -71,7 +71,10 @@ class V2rayVPNService : VpnService(), V2rayServicesListener {
             }
             AppConfigs.V2RAY_SERVICE_COMMANDS.MEASURE_DELAY -> {
                 Thread {
-                    val delay = V2rayCoreManager.getInstance().connectedV2rayServerDelay
+                    val url = intent?.getStringExtra("URL") ?: "https://www.gstatic.com/generate_204"
+                    Log.d(TAG, "MEASURE_DELAY => measuring with url: $url")
+                    val delay = V2rayCoreManager.getInstance().getConnectedV2rayServerDelay(url)
+                    Log.d(TAG, "MEASURE_DELAY => result: $delay ms")
                     val sendIntent = Intent("CONNECTED_V2RAY_SERVER_DELAY")
                     sendIntent.putExtra("DELAY", delay.toString())
                     sendBroadcast(sendIntent)

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.util.Log
 import dev.amirzr.flutter_v2ray_client.v2ray.core.V2rayCoreManager
 import dev.amirzr.flutter_v2ray_client.v2ray.services.V2rayProxyOnlyService
 import dev.amirzr.flutter_v2ray_client.v2ray.services.V2rayVPNService
@@ -79,8 +80,9 @@ object V2rayController {
         AppConfigs.V2RAY_CONFIG = null
     }
     
-    fun getConnectedV2rayServerDelay(context: Context): Long {
+    fun getConnectedV2rayServerDelay(context: Context, url: String? = null): Long {
         if (getConnectionState() != AppConfigs.V2RAY_STATES.V2RAY_CONNECTED) {
+            Log.d("V2rayController", "getConnectedV2rayServerDelay => not connected, state: ${getConnectionState()}")
             return -1
         }
         
@@ -94,12 +96,16 @@ object V2rayController {
         val latch = CountDownLatch(1)
         
         checkDelay.putExtra("COMMAND", AppConfigs.V2RAY_SERVICE_COMMANDS.MEASURE_DELAY)
+        if (url != null) {
+            checkDelay.putExtra("URL", url)
+        }
         context.startService(checkDelay)
         
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 val delayString = intent?.extras?.getString("DELAY")
                 delay[0] = delayString?.toLongOrNull() ?: -1
+                Log.d("V2rayController", "getConnectedV2rayServerDelay => received delay: ${delay[0]}")
                 context?.unregisterReceiver(this)
                 latch.countDown()
             }
@@ -113,21 +119,38 @@ object V2rayController {
         }
         
         return try {
-            val received = latch.await(3000, TimeUnit.MILLISECONDS)
-            if (!received) -1 else delay[0]
+            val received = latch.await(15000, TimeUnit.MILLISECONDS)
+            if (!received) {
+                Log.e("V2rayController", "getConnectedV2rayServerDelay => timeout after 15 seconds")
+                -1
+            } else {
+                delay[0]
+            }
         } catch (e: InterruptedException) {
-            e.printStackTrace()
+            Log.e("V2rayController", "getConnectedV2rayServerDelay => interrupted", e)
             -1
         }
     }
     
     fun getConnectedV2rayServerDelayDirect(url: String?): Long {
-        if (getConnectionState() != AppConfigs.V2RAY_STATES.V2RAY_CONNECTED) {
+        Log.d("V2rayController", "getConnectedV2rayServerDelayDirect => called with url: $url")
+        
+        val coreRunning = V2rayCoreManager.getInstance().isV2rayCoreRunning
+        val state = getConnectionState()
+        Log.d("V2rayController", "getConnectedV2rayServerDelayDirect => coreRunning: $coreRunning, state: $state")
+        
+        if (!coreRunning) {
+            Log.e("V2rayController", "getConnectedV2rayServerDelayDirect => core not running!")
             return -1
         }
+        
         return try {
-            V2rayCoreManager.getInstance().getConnectedV2rayServerDelay(url ?: "")
+            Log.d("V2rayController", "getConnectedV2rayServerDelayDirect => calling measureDelay...")
+            val delay = V2rayCoreManager.getInstance().getConnectedV2rayServerDelay(url ?: "https://www.gstatic.com/generate_204")
+            Log.d("V2rayController", "getConnectedV2rayServerDelayDirect => delay result: $delay ms")
+            delay
         } catch (e: Exception) {
+            Log.e("V2rayController", "getConnectedV2rayServerDelayDirect failed", e)
             -1
         }
     }
