@@ -200,7 +200,7 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
             context: context,
             title: 'Auto Select',
             content: 'Best server found: ${bestConfig!.remark} (${bestPing}ms)\n\nReconnect to this server?',
-            leadingIcon: CupertinoIcons.wand_stars,
+            leadingIcon: Icon(CupertinoIcons.wand_stars),
             iconColor: AppTheme.primaryBlue,
             primaryButtonText: 'Yes',
             secondaryButtonText: 'No',
@@ -372,7 +372,7 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
     await CustomGlassPopup.show(
       context: context,
       title: 'Add Server Manually',
-      leadingIcon: CupertinoIcons.add_circled_solid,
+      leadingIcon: Icon(CupertinoIcons.add_circled_solid),
       iconColor: AppTheme.primaryBlue,
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -468,7 +468,7 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
     await CustomGlassPopup.show(
       context: context,
       title: 'Import Custom Config',
-      leadingIcon: CupertinoIcons.doc_text_fill,
+      leadingIcon: Icon(CupertinoIcons.doc_text_fill),
       iconColor: const Color(0xFFFF2D55),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1225,7 +1225,7 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
       context: context,
       title: 'Delete Config',
       content: 'Are you sure you want to delete "${config.remark}"?',
-      leadingIcon: CupertinoIcons.delete,
+      leadingIcon: Icon(CupertinoIcons.delete),
       iconColor: AppTheme.disconnectedRed,
       primaryButtonText: 'Delete',
       secondaryButtonText: 'Cancel',
@@ -1527,153 +1527,6 @@ class _BulkImportDialogState extends State<_BulkImportDialog> {
               ),
             ]
           : null,
-    );
-  }
-  
-  String _truncateConfig(String config) {
-    if (config.length <= 50) return config;
-    return '${config.substring(0, 50)}...';
-  }
-      
-      setState(() {
-        _currentIndex = i + 1;
-        _currentConfig = widget.configLines[i];
-      });
-      
-      try {
-        final config = await service.parseConfigFromClipboard(widget.configLines[i]);
-        if (config != null) {
-          existingConfigs.add(config);
-          setState(() => _addedCount++);
-        } else {
-          setState(() => _failedCount++);
-        }
-      } catch (e) {
-        setState(() => _failedCount++);
-      }
-      
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-    
-    await service.saveConfigs(existingConfigs);
-    
-    setState(() => _isImporting = false);
-    
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    if (mounted) {
-      Navigator.pop(context, {
-        'added': _addedCount,
-        'failed': _failedCount,
-      });
-    }
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final progress = _currentIndex / widget.configLines.length;
-    
-    return CupertinoAlertDialog(
-      title: Text(_isImporting ? 'Importing Configs' : 'Import Complete'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 16),
-          if (_isImporting) ...[
-            const CupertinoActivityIndicator(radius: 16),
-            const SizedBox(height: 16),
-            Text(
-              'Processing $_currentIndex of ${widget.configLines.length}',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progress,
-                backgroundColor: AppTheme.systemGray.withOpacity(0.2),
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
-                minHeight: 8,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _truncateConfig(_currentConfig),
-              style: TextStyle(fontSize: 11, color: AppTheme.systemGray),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ] else ...[
-            Icon(
-              CupertinoIcons.check_mark_circled_solid,
-              size: 48,
-              color: AppTheme.connectedGreen,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Added: $_addedCount configs',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            if (_failedCount > 0) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Failed: $_failedCount configs',
-                style: TextStyle(fontSize: 13, color: AppTheme.disconnectedRed),
-              ),
-            ],
-          ],
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.connectedGreen.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '✓ $_addedCount',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.connectedGreen,
-                  ),
-                ),
-              ),
-              if (_failedCount > 0) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppTheme.disconnectedRed.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '✗ $_failedCount',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.disconnectedRed,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-      actions: [
-        if (!_isImporting)
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context, {
-              'added': _addedCount,
-              'failed': _failedCount,
-            }),
-            child: const Text('Done'),
-          ),
-      ],
     );
   }
   

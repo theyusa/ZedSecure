@@ -609,7 +609,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
     await CustomGlassPopup.show(
       context: context,
       title: 'Mux Settings',
-      leadingIcon: CupertinoIcons.arrow_merge,
+      leadingIcon: Icon(CupertinoIcons.arrow_merge),
       iconColor: const Color(0xFF5856D6),
       content: StatefulBuilder(
         builder: (context, setState) {
@@ -785,7 +785,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
     await CustomGlassPopup.show(
       context: context,
       title: 'Fragment Settings',
-      leadingIcon: CupertinoIcons.square_split_2x2,
+      leadingIcon: Icon(CupertinoIcons.square_split_)2x2,
       iconColor: Colors.orange,
       content: StatefulBuilder(
         builder: (context, setState) {

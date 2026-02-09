@@ -428,7 +428,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     await CustomGlassPopup.show(
       context: context,
       title: 'Add Subscription',
-      leadingIcon: CupertinoIcons.add_circled_solid,
+      leadingIcon: Icon(CupertinoIcons.add_circled_solid),
       iconColor: AppTheme.primaryBlue,
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -649,7 +649,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       context: context,
       title: 'Delete Subscription',
       content: 'Are you sure you want to delete "${subscription.name}"?',
-      leadingIcon: CupertinoIcons.delete,
+      leadingIcon: Icon(CupertinoIcons.delete),
       iconColor: AppTheme.disconnectedRed,
       primaryButtonText: 'Delete',
       secondaryButtonText: 'Cancel',

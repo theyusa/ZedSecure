@@ -66,7 +66,7 @@ class CustomGlassPopup extends StatefulWidget {
         return _PopupAnimation(
           animation: animation,
           isDismissible: isDismissible,
-          child,
+          child: child,
         );
       },
     );
@@ -169,18 +169,14 @@ class CustomGlassPopupState extends State<CustomGlassPopup> {
                     if (widget.title != null || widget.leadingIcon != null) ...[
                       Row(
                         children: [
-                          if (widget.leadingIcon != null) ...[
+                           if (widget.leadingIcon != null) ...[
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 color: (widget.iconColor ?? AppTheme.primaryBlue).withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Icon(
-                                widget.leadingIcon,
-                                color: widget.iconColor ?? AppTheme.primaryBlue,
-                                size: 20,
-                              ),
+                              child: widget.leadingIcon,
                             ),
                             const SizedBox(width: 12),
                           ],
