@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:zedsecure/services/app_settings_service.dart';
 import 'package:zedsecure/models/app_settings.dart';
 import 'package:zedsecure/theme/app_theme.dart';
+import 'package:zedsecure/widgets/custom_glass_popup.dart';
+import 'package:zedsecure/widgets/custom_glass_action_sheet.dart';
 
 class AdvancedSettingsScreen extends StatefulWidget {
   const AdvancedSettingsScreen({super.key});
@@ -513,23 +515,23 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
   Widget _buildDropdownTile(String title, String value, List<String> options, IconData icon, Color color, ValueChanged<String> onChanged, bool isDark) {
     return GestureDetector(
       onTap: () {
-        showCupertinoModalPopup(
+        CustomGlassActionSheet.show(
           context: context,
-          builder: (context) => CupertinoActionSheet(
-            actions: options.map((option) {
-              return CupertinoActionSheetAction(
-                onPressed: () {
-                  onChanged(option);
-                  Navigator.pop(context);
-                },
-                child: Text(option),
-              );
-            }).toList(),
-            cancelButton: CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-          ),
+          cancelText: 'Cancel',
+          actions: options.map((option) {
+            final isSelected = option == value;
+            return CustomGlassActionSheetItem(
+              title: option,
+              trailing: isSelected
+                  ? Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue)
+                  : null,
+              isDefault: isSelected,
+              onTap: () {
+                onChanged(option);
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
         );
       },
       behavior: HitTestBehavior.opaque,
@@ -602,144 +604,174 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
     int concurrency = service.muxSettings.concurrency;
     int xudpConcurrency = service.muxSettings.xudpConcurrency;
     String xudpQuic = service.muxSettings.xudpQuic;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    showCupertinoDialog(
+    await CustomGlassPopup.show(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
+      title: 'Mux Settings',
+      leadingIcon: CupertinoIcons.arrow_merge,
+      iconColor: const Color(0xFF5856D6),
+      content: StatefulBuilder(
         builder: (context, setState) {
-          return CupertinoAlertDialog(
-            title: const Text('Mux Settings'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Enable Mux', style: TextStyle(fontSize: 15, color: isDark ? Colors.white : Colors.black)),
+                  CupertinoSwitch(
+                    value: enabled,
+                    onChanged: (value) => setState(() => enabled = value),
+                  ),
+                ],
+              ),
+              if (enabled) ...[
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Enable Mux'),
-                    CupertinoSwitch(
-                      value: enabled,
-                      onChanged: (value) => setState(() => enabled = value),
+                    Text('Concurrency', style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87)),
+                    SizedBox(
+                      width: 80,
+                      child: CupertinoTextField(
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        controller: TextEditingController(text: concurrency.toString())
+                          ..selection = TextSelection.fromPosition(
+                            TextPosition(offset: concurrency.toString().length),
+                          ),
+                        onChanged: (value) {
+                          final parsed = int.tryParse(value);
+                          if (parsed != null && parsed > 0 && parsed <= 32) {
+                            setState(() => concurrency = parsed);
+                          }
+                        },
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.black.withOpacity(0.3) : const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.systemGray.withOpacity(0.3),
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
                     ),
                   ],
                 ),
-                if (enabled) ...[
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Concurrency'),
-                      SizedBox(
-                        width: 80,
-                        child: CupertinoTextField(
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          controller: TextEditingController(text: concurrency.toString())
-                            ..selection = TextSelection.fromPosition(
-                              TextPosition(offset: concurrency.toString().length),
-                            ),
-                          onChanged: (value) {
-                            final parsed = int.tryParse(value);
-                            if (parsed != null && parsed > 0 && parsed <= 32) {
-                              setState(() => concurrency = parsed);
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('XUDP Concurrency'),
-                      SizedBox(
-                        width: 80,
-                        child: CupertinoTextField(
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          controller: TextEditingController(text: xudpConcurrency.toString())
-                            ..selection = TextSelection.fromPosition(
-                              TextPosition(offset: xudpConcurrency.toString().length),
-                            ),
-                          onChanged: (value) {
-                            final parsed = int.tryParse(value);
-                            if (parsed != null && parsed > 0 && parsed <= 32) {
-                              setState(() => xudpConcurrency = parsed);
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('XUDP QUIC'),
-                      GestureDetector(
-                        onTap: () {
-                          showCupertinoModalPopup(
-                            context: context,
-                            builder: (popupContext) => CupertinoActionSheet(
-                              actions: ['reject', 'allow', 'skip'].map((mode) {
-                                return CupertinoActionSheetAction(
-                                  onPressed: () {
-                                    setState(() => xudpQuic = mode);
-                                    Navigator.pop(popupContext);
-                                  },
-                                  child: Text(mode),
-                                );
-                              }).toList(),
-                              cancelButton: CupertinoActionSheetAction(
-                                onPressed: () => Navigator.pop(popupContext),
-                                child: const Text('Cancel'),
-                              ),
-                            ),
-                          );
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('XUDP Concurrency', style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87)),
+                    SizedBox(
+                      width: 80,
+                      child: CupertinoTextField(
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        controller: TextEditingController(text: xudpConcurrency.toString())
+                          ..selection = TextSelection.fromPosition(
+                            TextPosition(offset: xudpConcurrency.toString().length),
+                          ),
+                        onChanged: (value) {
+                          final parsed = int.tryParse(value);
+                          if (parsed != null && parsed > 0 && parsed <= 32) {
+                            setState(() => xudpConcurrency = parsed);
+                          }
                         },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(xudpQuic, style: TextStyle(fontSize: 14, color: AppTheme.primaryBlue)),
-                            const SizedBox(width: 4),
-                            Icon(CupertinoIcons.chevron_right, size: 16, color: AppTheme.systemGray),
-                          ],
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.black.withOpacity(0.3) : const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.systemGray.withOpacity(0.3),
+                          ),
                         ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                    ],
-                  ),
-                ] else ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'Enable Mux to configure options',
-                    style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
-                  ),
-                ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('XUDP QUIC', style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87)),
+                    GestureDetector(
+                      onTap: () {
+                        CustomGlassActionSheet.show(
+                          context: context,
+                          cancelText: 'Cancel',
+                          actions: ['reject', 'allow', 'skip'].map((mode) {
+                            return CustomGlassActionSheetItem(
+                              title: mode,
+                              isDefault: mode == xudpQuic,
+                              onTap: () {
+                                setState(() => xudpQuic = mode);
+                                Navigator.pop(context);
+                              },
+                            );
+                          }).toList(),
+                        );
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(xudpQuic, style: TextStyle(fontSize: 14, color: AppTheme.primaryBlue)),
+                          const SizedBox(width: 4),
+                          Icon(CupertinoIcons.chevron_right, size: 16, color: AppTheme.systemGray),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Enable Mux to configure options',
+                  style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
+                ),
               ],
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-              CupertinoDialogAction(
-                onPressed: () async {
-                  final newSettings = MuxSettings(
-                    enabled: enabled,
-                    concurrency: concurrency,
-                    xudpConcurrency: xudpConcurrency,
-                    xudpQuic: xudpQuic,
-                  );
-                  await service.setMuxSettings(newSettings);
-                  Navigator.pop(dialogContext);
-                },
-                child: const Text('Save'),
-              ),
             ],
           );
         },
       ),
+      actions: [
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          color: isDark ? Colors.white12 : Colors.black12,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          color: AppTheme.primaryBlue,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: () async {
+            final newSettings = MuxSettings(
+              enabled: enabled,
+              concurrency: concurrency,
+              xudpConcurrency: xudpConcurrency,
+              xudpQuic: xudpQuic,
+            );
+            await service.setMuxSettings(newSettings);
+            Navigator.pop(context);
+          },
+          child: const Text(
+            'Save',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -748,129 +780,162 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
     String packets = service.fragmentSettings.packets;
     final lengthController = TextEditingController(text: service.fragmentSettings.length);
     final intervalController = TextEditingController(text: service.fragmentSettings.interval);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    showCupertinoDialog(
+    await CustomGlassPopup.show(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
+      title: 'Fragment Settings',
+      leadingIcon: CupertinoIcons.square_split_2x2,
+      iconColor: Colors.orange,
+      content: StatefulBuilder(
         builder: (context, setState) {
-          return CupertinoAlertDialog(
-            title: const Text('Fragment Settings'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Enable Fragment', style: TextStyle(fontSize: 15, color: isDark ? Colors.white : Colors.black)),
+                  CupertinoSwitch(
+                    value: enabled,
+                    onChanged: (value) => setState(() => enabled = value),
+                  ),
+                ],
+              ),
+              if (enabled) ...[
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Enable Fragment'),
-                    CupertinoSwitch(
-                      value: enabled,
-                      onChanged: (value) => setState(() => enabled = value),
+                    Text('Packets', style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87)),
+                    GestureDetector(
+                      onTap: () {
+                        CustomGlassActionSheet.show(
+                          context: context,
+                          cancelText: 'Cancel',
+                          actions: ['tlshello', '1-2', '1-3', '1-5'].map((p) {
+                            return CustomGlassActionSheetItem(
+                              title: p,
+                              isDefault: p == packets,
+                              onTap: () {
+                                setState(() => packets = p);
+                                Navigator.pop(context);
+                              },
+                            );
+                          }).toList(),
+                        );
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(packets, style: TextStyle(fontSize: 14, color: AppTheme.primaryBlue)),
+                          const SizedBox(width: 4),
+                          Icon(CupertinoIcons.chevron_right, size: 16, color: AppTheme.systemGray),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                if (enabled) ...[
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Packets'),
-                      GestureDetector(
-                        onTap: () {
-                          showCupertinoModalPopup(
-                            context: context,
-                            builder: (popupContext) => CupertinoActionSheet(
-                              actions: ['tlshello', '1-2', '1-3', '1-5'].map((p) {
-                                return CupertinoActionSheetAction(
-                                  onPressed: () {
-                                    setState(() => packets = p);
-                                    Navigator.pop(popupContext);
-                                  },
-                                  child: Text(p),
-                                );
-                              }).toList(),
-                              cancelButton: CupertinoActionSheetAction(
-                                onPressed: () => Navigator.pop(popupContext),
-                                child: const Text('Cancel'),
-                              ),
-                            ),
-                          );
-                        },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(packets, style: TextStyle(fontSize: 14, color: AppTheme.primaryBlue)),
-                            const SizedBox(width: 4),
-                            Icon(CupertinoIcons.chevron_right, size: 16, color: AppTheme.systemGray),
-                          ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: Text('Length', style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87))),
+                    SizedBox(
+                      width: 80,
+                      child: CupertinoTextField(
+                        controller: lengthController,
+                        placeholder: '50-100',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.black.withOpacity(0.3) : const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.systemGray.withOpacity(0.3),
+                          ),
                         ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Expanded(child: Text('Length', style: TextStyle(fontSize: 13))),
-                      SizedBox(
-                        width: 80,
-                        child: CupertinoTextField(
-                          controller: lengthController,
-                          placeholder: '50-100',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 13),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: Text('Interval', style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87))),
+                    SizedBox(
+                      width: 80,
+                      child: CupertinoTextField(
+                        controller: intervalController,
+                        placeholder: '10-20',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 13),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.black.withOpacity(0.3) : const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.systemGray.withOpacity(0.3),
+                          ),
                         ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Expanded(child: Text('Interval', style: TextStyle(fontSize: 13))),
-                      SizedBox(
-                        width: 80,
-                        child: CupertinoTextField(
-                          controller: intervalController,
-                          placeholder: '10-20',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'Enable Fragment to configure options',
-                    style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
-                  ),
-                ],
+                    ),
+                  ],
+                ),
+              ] else ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Enable Fragment to configure options',
+                  style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
+                ),
               ],
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-              CupertinoDialogAction(
-                onPressed: () async {
-                  final newSettings = FragmentSettings(
-                    enabled: enabled,
-                    packets: packets,
-                    length: lengthController.text.trim(),
-                    interval: intervalController.text.trim(),
-                  );
-                  await service.setFragmentSettings(newSettings);
-                  Navigator.pop(dialogContext);
-                },
-                child: const Text('Save'),
-              ),
             ],
           );
         },
       ),
+      actions: [
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          color: isDark ? Colors.white12 : Colors.black12,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: () {
+            lengthController.dispose();
+            intervalController.dispose();
+            Navigator.pop(context);
+          },
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          color: AppTheme.primaryBlue,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: () async {
+            final newSettings = FragmentSettings(
+              enabled: enabled,
+              packets: packets,
+              length: lengthController.text.trim(),
+              interval: intervalController.text.trim(),
+            );
+            await service.setFragmentSettings(newSettings);
+            lengthController.dispose();
+            intervalController.dispose();
+            Navigator.pop(context);
+          },
+          child: const Text(
+            'Save',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
-    
-    lengthController.dispose();
-    intervalController.dispose();
   }
 }
