@@ -9,6 +9,8 @@ import 'package:zedsecure/theme/app_theme.dart';
 import 'package:zedsecure/screens/per_app_proxy_screen.dart';
 import 'package:zedsecure/screens/advanced_settings_screen.dart';
 import 'package:zedsecure/screens/about_screen.dart';
+import 'package:zedsecure/widgets/custom_glass_action_sheet.dart';
+import 'package:zedsecure/widgets/custom_glass_dialog.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
@@ -348,123 +350,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _showThemeSelector(ThemeService themeService) async {
-    showCupertinoModalPopup(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    await CustomGlassActionSheet.show(
       context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: const Text('Select Theme'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              themeService.setThemeMode(ThemeMode.system);
-              Navigator.pop(context);
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(CupertinoIcons.device_phone_portrait, size: 20),
-                const SizedBox(width: 8),
-                const Text('Auto (System)'),
-                if (themeService.themeMode == ThemeMode.system)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 8),
-                    child: Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue),
-                  ),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              themeService.setThemeMode(ThemeMode.light);
-              Navigator.pop(context);
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(CupertinoIcons.sun_max_fill, size: 20),
-                const SizedBox(width: 8),
-                const Text('Light'),
-                if (themeService.themeMode == ThemeMode.light)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 8),
-                    child: Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue),
-                  ),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              themeService.setThemeMode(ThemeMode.dark);
-              Navigator.pop(context);
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(CupertinoIcons.moon_fill, size: 20),
-                const SizedBox(width: 8),
-                const Text('Dark'),
-                if (themeService.themeMode == ThemeMode.dark)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 8),
-                    child: Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue),
-                  ),
-              ],
-            ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+      title: 'Select Theme',
+      cancelText: 'Cancel',
+      actions: [
+        CustomGlassActionSheetItem(
+          leading: Icon(CupertinoIcons.device_phone_portrait, size: 20, color: AppTheme.primaryBlue),
+          title: 'Auto (System)',
+          trailing: themeService.themeMode == ThemeMode.system
+              ? Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue)
+              : null,
+          isDefault: themeService.themeMode == ThemeMode.system,
+          onTap: () => themeService.setThemeMode(ThemeMode.system),
         ),
-      ),
+        CustomGlassActionSheetItem(
+          leading: Icon(CupertinoIcons.sun_max_fill, size: 20, color: AppTheme.primaryBlue),
+          title: 'Light',
+          trailing: themeService.themeMode == ThemeMode.light
+              ? Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue)
+              : null,
+          isDefault: themeService.themeMode == ThemeMode.light,
+          onTap: () => themeService.setThemeMode(ThemeMode.light),
+        ),
+        CustomGlassActionSheetItem(
+          leading: Icon(CupertinoIcons.moon_fill, size: 20, color: AppTheme.primaryBlue),
+          title: 'Dark',
+          trailing: themeService.themeMode == ThemeMode.dark
+              ? Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue)
+              : null,
+          isDefault: themeService.themeMode == ThemeMode.dark,
+          onTap: () => themeService.setThemeMode(ThemeMode.dark),
+        ),
+      ],
     );
   }
 
   Future<void> _clearCache() async {
-    showCupertinoDialog(
+    final service = Provider.of<V2RayService>(context, listen: false);
+    
+    final confirmed = await CustomGlassDialog.show(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Clear Cache'),
-        content: const Text('This will clear all cached server data including ping results.'),
-        actions: [
-          CupertinoDialogAction(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          CupertinoDialogAction(
-            onPressed: () {
-              Navigator.pop(context);
-              final service = Provider.of<V2RayService>(context, listen: false);
-              service.clearPingCache();
-              _showSnackBar('Cache Cleared', 'All cached data has been cleared');
-            },
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
+      title: 'Clear Cache',
+      content: 'This will clear all cached server data including ping results.',
+      leadingIcon: CupertinoIcons.trash,
+      iconColor: Colors.orange,
+      primaryButtonText: 'Clear',
+      secondaryButtonText: 'Cancel',
     );
+    
+    if (confirmed == true) {
+      service.clearPingCache();
+      _showSnackBar('Cache Cleared', 'All cached data has been cleared');
+    }
   }
 
   Future<void> _clearAllData() async {
-    showCupertinoDialog(
+    final service = Provider.of<V2RayService>(context, listen: false);
+    
+    final confirmed = await CustomGlassDialog.show(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Clear All Data'),
-        content: const Text('This will delete all servers, subscriptions, and settings. This action cannot be undone.'),
-        actions: [
-          CupertinoDialogAction(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () async {
-              Navigator.pop(context);
-              final service = Provider.of<V2RayService>(context, listen: false);
-              await service.saveConfigs([]);
-              await service.saveSubscriptions([]);
-              service.clearPingCache();
-              await MmkvManager.clearAll();
-              _showSnackBar('All Data Cleared', 'App has been reset');
-            },
-            child: const Text('Clear All'),
-          ),
-        ],
-      ),
+      title: 'Clear All Data',
+      content: 'This will delete all servers, subscriptions, and settings. This action cannot be undone.',
+      leadingIcon: CupertinoIcons.delete,
+      iconColor: AppTheme.disconnectedRed,
+      primaryButtonText: 'Clear All',
+      secondaryButtonText: 'Cancel',
+      isPrimaryDestructive: true,
     );
+    
+    if (confirmed == true) {
+      await service.saveConfigs([]);
+      await service.saveSubscriptions([]);
+      service.clearPingCache();
+      await MmkvManager.clearAll();
+      _showSnackBar('All Data Cleared', 'App has been reset');
+    }
   }
 
   Future<void> _backupConfigs() async {
@@ -525,25 +488,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       files.sort((a, b) => b.path.compareTo(a.path));
 
-      showCupertinoModalPopup(
+      await CustomGlassActionSheet.show(
         context: context,
-        builder: (context) => CupertinoActionSheet(
-          title: const Text('Select Backup File'),
-          actions: files.map((file) {
-            final filename = file.path.split('/').last;
-            return CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                _performRestore(file.path);
-              },
-              child: Text(filename),
-            );
-          }).toList(),
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ),
+        title: 'Select Backup File',
+        cancelText: 'Cancel',
+        actions: files.map((file) {
+          final filename = file.path.split('/').last;
+          return CustomGlassActionSheetItem(
+            leading: Icon(CupertinoIcons.doc_text, size: 20, color: AppTheme.primaryBlue),
+            title: filename,
+            onTap: () => _performRestore(file.path),
+          );
+        }).toList(),
       );
     } catch (e) {
       _showSnackBar('Restore Failed', e.toString());
