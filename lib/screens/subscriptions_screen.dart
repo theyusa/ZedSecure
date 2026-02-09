@@ -6,6 +6,8 @@ import 'package:zedsecure/services/theme_service.dart';
 import 'package:zedsecure/models/subscription.dart';
 import 'package:zedsecure/models/v2ray_config.dart';
 import 'package:zedsecure/theme/app_theme.dart';
+import 'package:zedsecure/widgets/custom_glass_popup.dart';
+import 'package:zedsecure/widgets/custom_glass_dialog.dart';
 
 class SubscriptionsScreen extends StatefulWidget {
   const SubscriptionsScreen({super.key});
@@ -423,123 +425,98 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final urlController = TextEditingController();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    showDialog(
+    await CustomGlassPopup.show(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(CupertinoIcons.add_circled_solid, color: AppTheme.primaryBlue, size: 28),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Add Subscription',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ],
+      title: 'Add Subscription',
+      leadingIcon: CupertinoIcons.add_circled_solid,
+      iconColor: AppTheme.primaryBlue,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Name',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          CupertinoTextField(
+            controller: nameController,
+            placeholder: 'My Subscription',
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.black12,
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Name',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white70 : Colors.black87,
-                ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Subscription URL',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          CupertinoTextField(
+            controller: urlController,
+            placeholder: 'https://example.com/subscription',
+            padding: const EdgeInsets.all(14),
+            keyboardType: TextInputType.url,
+            maxLines: 3,
+            minLines: 1,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.black12,
               ),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: nameController,
-                placeholder: 'My Subscription',
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isDark ? Colors.white12 : Colors.black12,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Subscription URL',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white70 : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: urlController,
-                placeholder: 'https://example.com/subscription',
-                padding: const EdgeInsets.all(14),
-                keyboardType: TextInputType.url,
-                maxLines: 3,
-                minLines: 1,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isDark ? Colors.white12 : Colors.black12,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: CupertinoButton(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      color: isDark ? Colors.white12 : Colors.black12,
-                      borderRadius: BorderRadius.circular(12),
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: CupertinoButton(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      color: AppTheme.primaryBlue,
-                      borderRadius: BorderRadius.circular(12),
-                      onPressed: () async {
-                        if (nameController.text.isEmpty || urlController.text.isEmpty) return;
-                        Navigator.pop(context);
-                        await _addSubscription(nameController.text, urlController.text);
-                      },
-                      child: const Text(
-                        'Add',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          color: isDark ? Colors.white12 : Colors.black12,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-      ),
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          color: AppTheme.primaryBlue,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: () async {
+            if (nameController.text.isEmpty || urlController.text.isEmpty) return;
+            Navigator.pop(context);
+            await _addSubscription(nameController.text, urlController.text);
+          },
+          child: const Text(
+            'Add',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
+    nameController.dispose();
+    urlController.dispose();
   }
 
   Future<void> _addSubscription(String name, String url) async {
@@ -668,30 +645,23 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 
   Future<void> _deleteSubscription(Subscription subscription) async {
-    showCupertinoDialog(
+    final confirmed = await CustomGlassDialog.show(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Delete Subscription'),
-        content: Text('Are you sure you want to delete "${subscription.name}"?'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () async {
-              Navigator.pop(context);
-              _subscriptions.removeWhere((s) => s.id == subscription.id);
-              final service = Provider.of<V2RayService>(context, listen: false);
-              await service.saveSubscriptions(_subscriptions);
-              await _loadSubscriptions();
-              _showSnackBar('Deleted', 'Subscription deleted');
-            },
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      title: 'Delete Subscription',
+      content: 'Are you sure you want to delete "${subscription.name}"?',
+      leadingIcon: CupertinoIcons.delete,
+      iconColor: AppTheme.disconnectedRed,
+      primaryButtonText: 'Delete',
+      secondaryButtonText: 'Cancel',
+      isPrimaryDestructive: true,
     );
+    
+    if (confirmed == true) {
+      _subscriptions.removeWhere((s) => s.id == subscription.id);
+      final service = Provider.of<V2RayService>(context, listen: false);
+      await service.saveSubscriptions(_subscriptions);
+      await _loadSubscriptions();
+      _showSnackBar('Deleted', 'Subscription deleted');
+    }
   }
 }
