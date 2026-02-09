@@ -649,7 +649,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       context: context,
       title: 'Delete Subscription',
       content: 'Are you sure you want to delete "${subscription.name}"?',
-      leadingIcon: Icon(CupertinoIcons.delete),
+      leadingIcon: CupertinoIcons.delete,
       iconColor: AppTheme.disconnectedRed,
       primaryButtonText: 'Delete',
       secondaryButtonText: 'Cancel',

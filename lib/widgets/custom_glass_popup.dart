@@ -11,7 +11,7 @@ class CustomGlassPopup extends StatefulWidget {
   final double? maxWidth;
   final double? maxHeight;
   final bool isDismissible;
-  final Widget? leadingIcon;
+  final IconData? leadingIcon;
   final Color? iconColor;
   final EdgeInsetsGeometry? padding;
 
@@ -38,7 +38,7 @@ class CustomGlassPopup extends StatefulWidget {
     double? maxWidth,
     double? maxHeight,
     bool isDismissible = true,
-    Widget? leadingIcon,
+    IconData? leadingIcon,
     Color? iconColor,
     EdgeInsetsGeometry? padding,
   }) {
@@ -176,7 +176,11 @@ class CustomGlassPopupState extends State<CustomGlassPopup> {
                                 color: (widget.iconColor ?? AppTheme.primaryBlue).withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: widget.leadingIcon,
+                              child: Icon(
+                                widget.leadingIcon,
+                                color: widget.iconColor ?? AppTheme.primaryBlue,
+                                size: 20,
+                              ),
                             ),
                             const SizedBox(width: 12),
                           ],
