@@ -10,6 +10,7 @@ import 'package:zedsecure/services/country_detector.dart';
 import 'package:zedsecure/services/log_service.dart';
 import 'package:zedsecure/models/v2ray_config.dart';
 import 'package:zedsecure/theme/app_theme.dart';
+import 'package:zedsecure/widgets/custom_glass_popup.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -919,150 +920,168 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         minChildSize: 0.5,
         maxChildSize: 0.95,
         builder: (context, scrollController) => Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: isDark ? Colors.white12 : Colors.black12,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      CupertinoIcons.doc_text,
-                      color: AppTheme.primaryBlue,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Connection Logs',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: Icon(
-                        CupertinoIcons.trash,
-                        color: AppTheme.disconnectedRed,
-                      ),
-                      onPressed: () {
-                        logger.clear();
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        CupertinoIcons.xmark_circle_fill,
-                        color: AppTheme.systemGray,
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: AnimatedBuilder(
-                  animation: logger,
-                  builder: (context, child) {
-                    final logs = logger.logs;
-                    
-                    if (logs.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              CupertinoIcons.doc_text,
-                              size: 64,
-                              color: AppTheme.systemGray,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No logs yet',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: AppTheme.systemGray,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Logs will appear here when you connect',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.systemGray,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    
-                    return ListView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.all(16),
-                      itemCount: logs.length,
-                      itemBuilder: (context, index) {
-                        final log = logs[index];
-                        Color levelColor;
-                        
-                        switch (log.level) {
-                          case LogLevel.error:
-                            levelColor = AppTheme.disconnectedRed;
-                            break;
-                          case LogLevel.warning:
-                            levelColor = Colors.orange;
-                            break;
-                          case LogLevel.info:
-                            levelColor = AppTheme.primaryBlue;
-                            break;
-                          case LogLevel.debug:
-                            levelColor = AppTheme.systemGray;
-                            break;
-                        }
-                        
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 4,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  color: levelColor,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: SelectableText(
-                                  log.toString(),
-                                  style: TextStyle(
-                                    fontFamily: 'monospace',
-                                    fontSize: 11,
-                                    color: isDark ? Colors.white70 : Colors.black87,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+            borderRadius: BorderRadius.circular(24),
+            color: isDark ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.95),
+            border: Border.all(
+              color: isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.05),
+              width: 0.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 30,
+                offset: const Offset(0, -10),
               ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: isDark ? Colors.white12 : Colors.black12,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          CupertinoIcons.doc_text,
+                          color: AppTheme.primaryBlue,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Connection Logs',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: Icon(
+                            CupertinoIcons.trash,
+                            color: AppTheme.disconnectedRed,
+                          ),
+                          onPressed: () {
+                            logger.clear();
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            CupertinoIcons.xmark_circle_fill,
+                            color: AppTheme.systemGray,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: AnimatedBuilder(
+                      animation: logger,
+                      builder: (context, child) {
+                        final logs = logger.logs;
+                        
+                        if (logs.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  CupertinoIcons.doc_text,
+                                  size: 64,
+                                  color: AppTheme.systemGray,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No logs yet',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: AppTheme.systemGray,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Logs will appear here when you connect',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.systemGray,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                        return ListView.builder(
+                          controller: scrollController,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: logs.length,
+                          itemBuilder: (context, index) {
+                            final log = logs[index];
+                            Color levelColor;
+                            
+                            switch (log.level) {
+                              case LogLevel.error:
+                                levelColor = AppTheme.disconnectedRed;
+                                break;
+                              case LogLevel.warning:
+                                levelColor = Colors.orange;
+                                break;
+                              case LogLevel.info:
+                                levelColor = AppTheme.primaryBlue;
+                                break;
+                              case LogLevel.debug:
+                                levelColor = AppTheme.systemGray;
+                                break;
+                            }
+                            
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 4,
+                                    height: 20,
+                                    decoration: BoxDecoration(
+                                      color: levelColor,
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: SelectableText(
+                                      log.toString(),
+                                      style: TextStyle(
+                                        fontFamily: 'monospace',
+                                        fontSize: 11,
+                                        color: isDark ? Colors.white70 : Colors.black87,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
