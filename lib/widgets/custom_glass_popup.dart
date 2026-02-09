@@ -139,7 +139,7 @@ class CustomGlassPopupState extends State<CustomGlassPopup> {
         ),
         margin: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(28),
           color: isDark ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.95),
           border: Border.all(
             color: isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.05),
@@ -147,15 +147,15 @@ class CustomGlassPopupState extends State<CustomGlassPopup> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 30,
-              offset: const Offset(0, 10),
-              spreadRadius: 0,
+              color: Colors.black.withOpacity(0.25),
+              blurRadius: 40,
+              offset: const Offset(0, 15),
+              spreadRadius: 2,
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: SingleChildScrollView(
