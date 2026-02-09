@@ -8,6 +8,9 @@ import 'package:zedsecure/models/v2ray_config.dart';
 import 'package:zedsecure/models/subscription.dart';
 import 'package:zedsecure/theme/app_theme.dart';
 import 'package:zedsecure/screens/edit_config_screen.dart';
+import 'package:zedsecure/widgets/custom_glass_popup.dart';
+import 'package:zedsecure/widgets/custom_glass_action_sheet.dart';
+import 'package:zedsecure/widgets/custom_glass_dialog.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -193,22 +196,14 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
         await _handleSelectConfig(bestConfig);
         
         if (service.isConnected) {
-          final shouldReconnect = await showCupertinoDialog<bool>(
+          final shouldReconnect = await CustomGlassDialog.show(
             context: context,
-            builder: (context) => CupertinoAlertDialog(
-              title: const Text('Auto Select'),
-              content: Text('Best server found: ${bestConfig!.remark} (${bestPing}ms)\n\nReconnect to this server?'),
-              actions: [
-                CupertinoDialogAction(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('No'),
-                ),
-                CupertinoDialogAction(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Yes'),
-                ),
-              ],
-            ),
+            title: 'Auto Select',
+            content: 'Best server found: ${bestConfig!.remark} (${bestPing}ms)\n\nReconnect to this server?',
+            leadingIcon: CupertinoIcons.wand_stars,
+            iconColor: AppTheme.primaryBlue,
+            primaryButtonText: 'Yes',
+            secondaryButtonText: 'No',
           );
 
           if (shouldReconnect == true) {
@@ -374,77 +369,56 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
   Future<void> _showManualAddDialog() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    showDialog(
+    await CustomGlassPopup.show(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+      title: 'Add Server Manually',
+      leadingIcon: CupertinoIcons.add_circled_solid,
+      iconColor: AppTheme.primaryBlue,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Select Protocol',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              Row(
-                children: [
-                  Icon(CupertinoIcons.add_circled_solid, color: AppTheme.primaryBlue, size: 28),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Add Server Manually',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Select Protocol',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white70 : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _buildProtocolChip('VMess', CupertinoIcons.shield_fill, const Color(0xFF5856D6), isDark),
-                  _buildProtocolChip('VLESS', CupertinoIcons.shield_lefthalf_fill, AppTheme.primaryBlue, isDark),
-                  _buildProtocolChip('Trojan', CupertinoIcons.lock_shield_fill, const Color(0xFFFF3B30), isDark),
-                  _buildProtocolChip('Shadowsocks', CupertinoIcons.eye_slash_fill, const Color(0xFF34C759), isDark),
-                  _buildProtocolChip('SOCKS', CupertinoIcons.arrow_right_arrow_left, const Color(0xFFFF9500), isDark),
-                  _buildProtocolChip('HTTP', CupertinoIcons.globe, const Color(0xFF007AFF), isDark),
-                  _buildProtocolChip('Hysteria2', CupertinoIcons.bolt_fill, const Color(0xFFAF52DE), isDark),
-                  _buildProtocolChip('WireGuard', CupertinoIcons.antenna_radiowaves_left_right, const Color(0xFF00C7BE), isDark),
-                  _buildProtocolChip('Custom JSON', CupertinoIcons.doc_text_fill, const Color(0xFFFF2D55), isDark, isCustom: true),
-                ],
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: CupertinoButton(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  color: isDark ? Colors.white12 : Colors.black12,
-                  borderRadius: BorderRadius.circular(12),
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
+              _buildProtocolChip('VMess', CupertinoIcons.shield_fill, const Color(0xFF5856D6), isDark),
+              _buildProtocolChip('VLESS', CupertinoIcons.shield_lefthalf_fill, AppTheme.primaryBlue, isDark),
+              _buildProtocolChip('Trojan', CupertinoIcons.lock_shield_fill, const Color(0xFFFF3B30), isDark),
+              _buildProtocolChip('Shadowsocks', CupertinoIcons.eye_slash_fill, const Color(0xFF34C759), isDark),
+              _buildProtocolChip('SOCKS', CupertinoIcons.arrow_right_arrow_left, const Color(0xFFFF9500), isDark),
+              _buildProtocolChip('HTTP', CupertinoIcons.globe, const Color(0xFF007AFF), isDark),
+              _buildProtocolChip('Hysteria2', CupertinoIcons.bolt_fill, const Color(0xFFAF52DE), isDark),
+              _buildProtocolChip('WireGuard', CupertinoIcons.antenna_radiowaves_left_right, const Color(0xFF00C7BE), isDark),
+              _buildProtocolChip('Custom JSON', CupertinoIcons.doc_text_fill, const Color(0xFFFF2D55), isDark, isCustom: true),
             ],
           ),
-        ),
+        ],
       ),
+      actions: [
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          color: isDark ? Colors.white12 : Colors.black12,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -491,112 +465,84 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final jsonController = TextEditingController();
 
-    showDialog(
+    await CustomGlassPopup.show(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(CupertinoIcons.doc_text_fill, color: const Color(0xFFFF2D55), size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Import Custom Config',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                    ),
-                  ),
-                ],
+      title: 'Import Custom Config',
+      leadingIcon: CupertinoIcons.doc_text_fill,
+      iconColor: const Color(0xFFFF2D55),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Paste your complete V2Ray JSON configuration below:',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppTheme.systemGray,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 300),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.black.withOpacity(0.3) : const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.systemGray.withOpacity(0.3),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Paste your complete V2Ray JSON configuration below:',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppTheme.systemGray,
-                ),
+            ),
+            child: TextField(
+              controller: jsonController,
+              maxLines: null,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 11,
+                color: isDark ? Colors.white70 : Colors.black87,
               ),
-              const SizedBox(height: 12),
-              Container(
-                constraints: const BoxConstraints(maxHeight: 300),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.black : const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.systemGray.withOpacity(0.3),
-                  ),
-                ),
-                child: TextField(
-                  controller: jsonController,
-                  maxLines: null,
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 11,
-                    color: isDark ? Colors.white70 : Colors.black87,
-                  ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: '{\n  "log": {...},\n  "inbounds": [...],\n  ...\n}',
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: '{\n  "log": {...},\n  "inbounds": [...],\n  ...\n}',
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: CupertinoButton(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      color: isDark ? Colors.white12 : Colors.black12,
-                      borderRadius: BorderRadius.circular(12),
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: CupertinoButton(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      color: AppTheme.primaryBlue,
-                      borderRadius: BorderRadius.circular(12),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _importCustomConfig(jsonController.text);
-                      },
-                      child: const Text(
-                        'Import',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          color: isDark ? Colors.white12 : Colors.black12,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-      ),
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          color: AppTheme.primaryBlue,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: () {
+            Navigator.pop(context);
+            _importCustomConfig(jsonController.text);
+          },
+          child: const Text(
+            'Import',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
+    jsonController.dispose();
   }
 
   Future<void> _importCustomConfig(String jsonText) async {
@@ -1134,47 +1080,37 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
     final service = Provider.of<V2RayService>(context, listen: false);
     final isConnected = service.activeConfig?.id == config.id;
     
-    showCupertinoModalPopup(
+    CustomGlassActionSheet.show(
       context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: Text(config.remark),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _handleConnect(config);
-            },
-            child: Text(isConnected ? 'Disconnect' : 'Connect'),
+      title: config.remark,
+      cancelText: 'Cancel',
+      actions: [
+        CustomGlassActionSheetItem(
+          leading: Icon(
+            isConnected ? CupertinoIcons.xmark_circle : CupertinoIcons.check_mark_circled,
+            color: isConnected ? AppTheme.disconnectedRed : AppTheme.connectedGreen,
           ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _copyConfig(config);
-            },
-            child: const Text('Copy Config'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _showQRCode(config);
-            },
-            child: const Text('Show QR Code'),
-          ),
-          if (!isConnected)
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () {
-                Navigator.pop(context);
-                _deleteConfig(config);
-              },
-              child: const Text('Delete'),
-            ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          title: isConnected ? 'Disconnect' : 'Connect',
+          onTap: () => _handleConnect(config),
         ),
-      ),
+        CustomGlassActionSheetItem(
+          leading: Icon(CupertinoIcons.doc_on_clipboard, color: AppTheme.primaryBlue),
+          title: 'Copy Config',
+          onTap: () => _copyConfig(config),
+        ),
+        CustomGlassActionSheetItem(
+          leading: Icon(CupertinoIcons.qrcode_viewfinder, color: AppTheme.primaryBlue),
+          title: 'Show QR Code',
+          onTap: () => _showQRCode(config),
+        ),
+        if (!isConnected)
+          CustomGlassActionSheetItem(
+            leading: Icon(CupertinoIcons.delete, color: AppTheme.disconnectedRed),
+            title: 'Delete',
+            isDestructive: true,
+            onTap: () => _deleteConfig(config),
+          ),
+      ],
     );
   }
 
@@ -1233,92 +1169,77 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
   Future<void> _showQRCode(V2RayConfig config) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    showDialog(
+    await CustomGlassPopup.show(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                config.remark,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: QrImageView(
-                  data: config.fullConfig,
-                  version: QrVersions.auto,
-                  size: 260,
-                  backgroundColor: Colors.white,
-                  errorCorrectionLevel: QrErrorCorrectLevel.M,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Scan to import config',
-                style: TextStyle(fontSize: 13, color: AppTheme.systemGray),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: CupertinoButton(
-                  color: AppTheme.primaryBlue,
-                  borderRadius: BorderRadius.circular(12),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Close', style: TextStyle(color: Colors.white)),
-                ),
-              ),
-            ],
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            config.remark,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: QrImageView(
+              data: config.fullConfig,
+              version: QrVersions.auto,
+              size: 260,
+              backgroundColor: Colors.white,
+              errorCorrectionLevel: QrErrorCorrectLevel.M,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Scan to import config',
+            style: TextStyle(fontSize: 13, color: AppTheme.systemGray),
+          ),
+        ],
       ),
+      actions: [
+        CupertinoButton(
+          color: AppTheme.primaryBlue,
+          borderRadius: BorderRadius.circular(12),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close', style: TextStyle(color: Colors.white)),
+        ),
+      ],
     );
   }
 
   Future<void> _deleteConfig(V2RayConfig config) async {
-    showCupertinoDialog(
+    final service = Provider.of<V2RayService>(context, listen: false);
+    
+    final confirmed = await CustomGlassDialog.show(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Delete Config'),
-        content: Text('Are you sure you want to delete "${config.remark}"?'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () async {
-              Navigator.pop(context);
-              final service = Provider.of<V2RayService>(context, listen: false);
-              final configs = await service.loadConfigs();
-              configs.removeWhere((c) => c.id == config.id);
-              await service.saveConfigs(configs);
-              service.clearPingCache(configId: config.id);
-              await _loadConfigs();
-              _showSnackBar('Config Deleted', '${config.remark} has been deleted');
-            },
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      title: 'Delete Config',
+      content: 'Are you sure you want to delete "${config.remark}"?',
+      leadingIcon: CupertinoIcons.delete,
+      iconColor: AppTheme.disconnectedRed,
+      primaryButtonText: 'Delete',
+      secondaryButtonText: 'Cancel',
+      isPrimaryDestructive: true,
     );
+    
+    if (confirmed == true) {
+      final configs = await service.loadConfigs();
+      configs.removeWhere((c) => c.id == config.id);
+      await service.saveConfigs(configs);
+      service.clearPingCache(configId: config.id);
+      await _loadConfigs();
+      _showSnackBar('Config Deleted', '${config.remark} has been deleted');
+    }
   }
 
   Future<void> _scanQRCode() async {
@@ -1440,6 +1361,179 @@ class _BulkImportDialog extends StatefulWidget {
 
   @override
   State<_BulkImportDialog> createState() => _BulkImportDialogState();
+}
+
+class _BulkImportDialogState extends State<_BulkImportDialog> {
+  bool _isImporting = false;
+  int _currentIndex = 0;
+  int _addedCount = 0;
+  int _failedCount = 0;
+  String _currentConfig = '';
+  
+  @override
+  void initState() {
+    super.initState();
+    _startImport();
+  }
+  
+  Future<void> _startImport() async {
+    setState(() => _isImporting = true);
+    
+    final service = Provider.of<V2RayService>(context, listen: false);
+    final existingConfigs = await service.loadConfigs();
+    
+    for (int i = 0; i < widget.configLines.length; i++) {
+      if (!mounted) break;
+      
+      setState(() {
+        _currentIndex = i + 1;
+        _currentConfig = widget.configLines[i];
+      });
+      
+      try {
+        final config = await service.parseConfigFromClipboard(widget.configLines[i]);
+        if (config != null) {
+          existingConfigs.add(config);
+          setState(() => _addedCount++);
+        } else {
+          setState(() => _failedCount++);
+        }
+      } catch (e) {
+        setState(() => _failedCount++);
+      }
+      
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    
+    await service.saveConfigs(existingConfigs);
+    
+    setState(() => _isImporting = false);
+    
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    if (mounted) {
+      Navigator.pop(context, {
+        'added': _addedCount,
+        'failed': _failedCount,
+      });
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final progress = _currentIndex / widget.configLines.length;
+    
+    return CustomGlassPopup(
+      title: _isImporting ? 'Importing Configs' : 'Import Complete',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 16),
+          if (_isImporting) ...[
+            const CupertinoActivityIndicator(radius: 16),
+            const SizedBox(height: 16),
+            Text(
+              'Processing $_currentIndex of ${widget.configLines.length}',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress,
+                backgroundColor: AppTheme.systemGray.withOpacity(0.2),
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+                minHeight: 8,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _truncateConfig(_currentConfig),
+              style: TextStyle(fontSize: 11, color: AppTheme.systemGray),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ] else ...[
+            Icon(
+              CupertinoIcons.check_mark_circled_solid,
+              size: 48,
+              color: AppTheme.connectedGreen,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Added: $_addedCount configs',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            if (_failedCount > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Failed: $_failedCount configs',
+                style: TextStyle(fontSize: 13, color: AppTheme.disconnectedRed),
+              ),
+            ],
+          ],
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical:4),
+                decoration: BoxDecoration(
+                  color: AppTheme.connectedGreen.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '✓ $_addedCount',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.connectedGreen,
+                  ),
+                ),
+              ),
+              if (_failedCount > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical:4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.disconnectedRed.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '✗ $_failedCount',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.disconnectedRed,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+      actions: !_isImporting
+          ? [
+              CupertinoButton(
+                color: AppTheme.primaryBlue,
+                borderRadius: BorderRadius.circular(12),
+                onPressed: () => Navigator.pop(context, {
+                  'added': _addedCount,
+                  'failed': _failedCount,
+                }),
+                child: const Text('Done', style: TextStyle(color: Colors.white)),
+              ),
+            ]
+          : null,
+    );
+  }
+  
+  String _truncateConfig(String config) {
+    if (config.length <= 50) return config;
+    return '${config.substring(0, 50)}...';
+  }
 }
 
 class _BulkImportDialogState extends State<_BulkImportDialog> {
