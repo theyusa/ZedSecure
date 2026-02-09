@@ -62,6 +62,9 @@ class CustomGlassActionSheet extends StatefulWidget {
       ),
     );
   }
+
+  @override
+  State<CustomGlassActionSheet> createState() => CustomGlassActionSheetState();
 }
 
 class CustomGlassActionSheetState extends State<CustomGlassActionSheet>

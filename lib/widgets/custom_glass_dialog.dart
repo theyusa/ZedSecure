@@ -69,8 +69,11 @@ class CustomGlassDialog extends StatefulWidget {
           child: child!,
         );
       },
-    );
+      );
   }
+
+  @override
+  State<CustomGlassDialog> createState() => CustomGlassDialogState();
 }
 
 class _DialogAnimation extends StatelessWidget {

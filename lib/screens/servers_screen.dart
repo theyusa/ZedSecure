@@ -1534,29 +1534,6 @@ class _BulkImportDialogState extends State<_BulkImportDialog> {
     if (config.length <= 50) return config;
     return '${config.substring(0, 50)}...';
   }
-}
-
-class _BulkImportDialogState extends State<_BulkImportDialog> {
-  bool _isImporting = false;
-  int _currentIndex = 0;
-  int _addedCount = 0;
-  int _failedCount = 0;
-  String _currentConfig = '';
-  
-  @override
-  void initState() {
-    super.initState();
-    _startImport();
-  }
-  
-  Future<void> _startImport() async {
-    setState(() => _isImporting = true);
-    
-    final service = Provider.of<V2RayService>(context, listen: false);
-    final existingConfigs = await service.loadConfigs();
-    
-    for (int i = 0; i < widget.configLines.length; i++) {
-      if (!mounted) break;
       
       setState(() {
         _currentIndex = i + 1;

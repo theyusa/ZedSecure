@@ -66,11 +66,14 @@ class CustomGlassPopup extends StatefulWidget {
         return _PopupAnimation(
           animation: animation,
           isDismissible: isDismissible,
-          child: child!,
+          child,
         );
       },
     );
   }
+
+  @override
+  State<CustomGlassPopup> createState() => CustomGlassPopupState();
 }
 
 class _PopupAnimation extends StatelessWidget {
