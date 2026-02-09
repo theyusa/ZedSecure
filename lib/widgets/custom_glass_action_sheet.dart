@@ -199,10 +199,10 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                                     ),
                                     child: Row(
                                       children: [
-                                        if (action.leading != null) ...[
+                                        if (action.leading != null)
                                           action.leading!,
+                                        if (action.leading != null)
                                           const SizedBox(width: 12),
-                                        ],
                                         Expanded(
                                           child: Text(
                                             action.title,
@@ -214,12 +214,13 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                                                       ? AppTheme.disconnectedRed
                                                       : (isSelected ? AppTheme.primaryBlue : (isDark ? Colors.white : Colors.black)),
                                                 ),
-                                          textAlign: TextAlign.center,
+                                            textAlign: TextAlign.center,
+                                          ),
                                         ),
-                                        if (action.trailing != null) ...[
+                                        if (action.trailing != null)
                                           const SizedBox(width: 12),
+                                        if (action.trailing != null)
                                           action.trailing!,
-                                        ],
                                       ],
                                     ),
                                   ),
