@@ -428,7 +428,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     await CustomGlassPopup.show(
       context: context,
       title: 'Add Subscription',
-      leadingIcon: Icon(CupertinoIcons.add_circled_solid),
+      leadingIcon: CupertinoIcons.add_circled_solid,
       iconColor: AppTheme.primaryBlue,
       content: Column(
         mainAxisSize: MainAxisSize.min,

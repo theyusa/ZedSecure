@@ -372,7 +372,7 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
     await CustomGlassPopup.show(
       context: context,
       title: 'Add Server Manually',
-      leadingIcon: Icon(CupertinoIcons.add_circled_solid),
+      leadingIcon: CupertinoIcons.add_circled_solid,
       iconColor: AppTheme.primaryBlue,
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -468,7 +468,7 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
     await CustomGlassPopup.show(
       context: context,
       title: 'Import Custom Config',
-      leadingIcon: Icon(CupertinoIcons.doc_text_fill),
+      leadingIcon: CupertinoIcons.doc_text_fill,
       iconColor: const Color(0xFFFF2D55),
       content: Column(
         mainAxisSize: MainAxisSize.min,
