@@ -46,6 +46,11 @@ class AppTheme {
 
   static ThemeData darkTheme({Color accentColor = primaryBlue, Color? backgroundColor}) {
     final bg = backgroundColor ?? const Color(0xFF121212);
+    
+    // Modern Dark Gradient Background simulation via scaffoldBackgroundColor
+    // Note: For proper gradient, a Container with gradient decoration would be needed in widget tree
+    // Here we use a deep, modern dark grey-blue color
+    
     return ThemeData(
       brightness: Brightness.dark,
       primaryColor: accentColor,
@@ -63,9 +68,22 @@ class AppTheme {
       colorScheme: ColorScheme.dark(
         primary: accentColor,
         secondary: accentColor,
-        surface: bg == Colors.black ? const Color(0xFF1C1C1E) : bg.withOpacity(0.8),
+        surface: _getSurfaceColorForBackground(bg),
       ),
     );
+  }
+
+  static Color _getSurfaceColorForBackground(Color bg) {
+    // Pure AMOLED: Use distinct dark grey for cards
+    if (bg == Colors.black) {
+      return const Color(0xFF1C1C1E);
+    }
+    // Modern Dark (#121212): Use lighter grey for cards to create contrast
+    if (bg.value == const Color(0xFF121212).value) {
+      return const Color(0xFF282828);
+    }
+    // Other themes: Use slightly transparent version
+    return bg.withOpacity(0.8);
   }
 
   static ThemeData amoledTheme({Color accentColor = primaryBlue}) {
@@ -147,20 +165,51 @@ class AppTheme {
 
   static BoxDecoration iosCardDecoration({bool isDark = true, BuildContext? context}) {
     final Color bgColor;
+    final Color? borderColor;
+    final List<BoxShadow>? shadows;
+
     if (context != null) {
       final theme = Theme.of(context);
-      if (theme.scaffoldBackgroundColor == Colors.black) {
+      final isAmoled = theme.scaffoldBackgroundColor == Colors.black;
+      
+      if (isAmoled) {
+        // Pure AMOLED: Use distinct dark grey and subtle border for visibility
         bgColor = const Color(0xFF1C1C1E);
+        borderColor = Colors.white.withOpacity(0.08);
+        shadows = [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ];
       } else {
+        // Modern Dark, Midnight, Emerald, etc.: Use theme surface color
         bgColor = theme.colorScheme.surface;
+        if (isDark) {
+           // Dark themes get subtle shadow and border
+           shadows = [
+             BoxShadow(
+               color: Colors.black.withOpacity(0.2),
+               blurRadius: 12,
+               offset: const Offset(0, 4),
+             ),
+           ];
+           borderColor = Colors.white.withOpacity(0.05);
+        }
       }
     } else {
+      // Fallback for cases without context
       bgColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
     }
 
     return BoxDecoration(
       borderRadius: BorderRadius.circular(12),
       color: bgColor,
+      border: borderColor != null
+          ? Border.all(color: borderColor!, width: 0.5)
+          : null,
+      boxShadow: shadows,
     );
   }
 
