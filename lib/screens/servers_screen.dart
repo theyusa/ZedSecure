@@ -718,7 +718,7 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
             _buildHeader(isDark, context),
             if (_subscriptions.isNotEmpty && _tabController != null)
               _buildTabBar(isDark, context),
-            _buildSearchBar(isDark),
+            _buildSearchBar(isDark, context),
             Expanded(child: _buildServerList(isDark, context)),
           ],
         ),
@@ -978,6 +978,39 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
             _buildPingBadge(ping),
             _buildActionButtons(config, isDark, context),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(bool isDark, BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: CupertinoSearchTextField(
+        placeholder: 'Search servers...',
+        onChanged: (value) => setState(() => _searchQuery = value),
+        style: TextStyle(color: isDark ? Colors.white : Colors.black),
+      ),
+    );
+  }
+
+  Widget _buildPingBadge(int? ping) {
+    if (ping == null) return const SizedBox(width: 50);
+    
+    return Container(
+      constraints: const BoxConstraints(minWidth: 50),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.getPingColor(ping).withOpacity(0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        ping >= 0 ? '${ping}ms' : 'Fail',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: AppTheme.getPingColor(ping),
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
         ),
       ),
     );
