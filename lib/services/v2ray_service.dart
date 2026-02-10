@@ -474,7 +474,7 @@ class V2RayService extends ChangeNotifier {
     _savePingCache();
   }
 
-  Future<Map<String, dynamic>> parseSubscriptionUrl(String url, {String? subscriptionId}) async {
+  Future<Map<String, dynamic>> parseSubscriptionUrl(String url, {String? subscriptionId, bool forceResolve = false}) async {
     try {
       debugPrint('Fetching subscription from: $url');
       
@@ -504,7 +504,7 @@ class V2RayService extends ChangeNotifier {
         throw Exception('Empty response from subscription URL');
       }
 
-      final configs = _parseContent(response.body, source: 'subscription', subscriptionId: subscriptionId);
+      final configs = await _parseContent(response.body, source: 'subscription', subscriptionId: subscriptionId, forceResolve: forceResolve);
       
       final subInfo = _parseSubscriptionInfo(response.headers);
       
@@ -578,7 +578,7 @@ class V2RayService extends ChangeNotifier {
 
   Future<List<V2RayConfig>> parseSubscriptionContent(String content) async {
     try {
-      return _parseContent(content, source: 'subscription');
+      return await _parseContent(content, source: 'subscription', forceResolve: false);
     } catch (e) {
       debugPrint('Error parsing subscription content: $e');
       
@@ -592,7 +592,7 @@ class V2RayService extends ChangeNotifier {
 
   Future<V2RayConfig?> parseConfigFromClipboard(String clipboardText) async {
     try {
-      final configs = _parseContent(clipboardText, source: 'manual');
+      final configs = await _parseContent(clipboardText, source: 'manual');
       if (configs.isNotEmpty) {
         final allConfigs = await loadConfigs();
         allConfigs.add(configs.first);
@@ -606,7 +606,7 @@ class V2RayService extends ChangeNotifier {
     }
   }
 
-  List<V2RayConfig> _parseContent(String content, {String source = 'subscription', String? subscriptionId}) {
+  Future<List<V2RayConfig>> _parseContent(String content, {String source = 'subscription', String? subscriptionId, bool forceResolve = false}) async {
     final List<V2RayConfig> configs = [];
 
     try {
@@ -644,7 +644,7 @@ class V2RayService extends ChangeNotifier {
             try {
               final configJson = jsonData[i];
               if (configJson is Map<String, dynamic>) {
-                final parsedConfig = _parseJsonConfig(configJson, source, subscriptionId);
+                final parsedConfig = await _parseJsonConfig(configJson, source, subscriptionId, forceResolve);
                 if (parsedConfig != null) {
                   configs.add(parsedConfig);
                 }
@@ -660,7 +660,7 @@ class V2RayService extends ChangeNotifier {
           }
         } else if (jsonData is Map<String, dynamic>) {
           debugPrint('Processing single JSON config');
-          final parsedConfig = _parseJsonConfig(jsonData, source, subscriptionId);
+          final parsedConfig = await _parseJsonConfig(jsonData, source, subscriptionId, forceResolve);
           if (parsedConfig != null) {
             configs.add(parsedConfig);
             return configs;
@@ -707,19 +707,29 @@ class V2RayService extends ChangeNotifier {
           String address = parser.address;
           int port = parser.port;
 
+          String modifiedConfig = line;
+          String remark = parser.remark;
+          if (forceResolve && address.isNotEmpty && !_isIpAddress(address)) {
+            final resolvedIp = await _resolveHostname(address);
+            if (resolvedIp != null) {
+              remark = resolvedIp;
+              modifiedConfig = _rewriteConfigWithIp(line, address, resolvedIp, configType);
+            }
+          }
+
           configs.add(
             V2RayConfig(
               id: DateTime.now().millisecondsSinceEpoch.toString() + configs.length.toString(),
-              remark: parser.remark,
+              remark: remark,
               address: address,
               port: port,
               configType: configType,
-              fullConfig: line,
+              fullConfig: modifiedConfig,
               source: source,
               subscriptionId: subscriptionId,
             ),
           );
-          debugPrint('Parsed config: ${parser.remark}');
+          debugPrint('Parsed config: $remark');
         }
       } catch (e) {
         debugPrint('Error parsing line: $e');
@@ -735,6 +745,18 @@ class V2RayService extends ChangeNotifier {
     return configs;
   }
 
+  Future<String?> _resolveHostname(String hostname) async {
+    try {
+      final result = await InternetAddress.lookup(hostname);
+      if (result.isNotEmpty && result[0].address.isNotEmpty) {
+        return result[0].address;
+      }
+    } catch (e) {
+      debugPrint('Failed to resolve hostname $hostname: $e');
+    }
+    return null;
+  }
+
   bool _isBase64(String str) {
     str = str.trim();
     if (str.length % 4 != 0) {
@@ -744,10 +766,94 @@ class V2RayService extends ChangeNotifier {
     return base64Pattern.hasMatch(str);
   }
 
-  V2RayConfig? _parseJsonConfig(Map<String, dynamic> configJson, String source, String? subscriptionId) {
+  bool _isIpAddress(String address) {
+    final ipPattern = RegExp(r'^(\d{1,3}\.){3}\d{1,3}$');
+    return ipPattern.hasMatch(address);
+  }
+
+  String _rewriteConfigWithIp(String originalConfig, String originalAddress, String resolvedIp, String configType) {
+    String modifiedConfig = originalConfig;
+    bool needsSni = false;
+    bool hasSni = false;
+    String sniParam = 'sni';
+
+    if (configType == 'vmess' || configType == 'vless' || configType == 'trojan' || configType == 'hysteria2') {
+      if (configType == 'vmess' || configType == 'vless') {
+        if (modifiedConfig.contains('security=tls') || modifiedConfig.contains('security=reality')) {
+          needsSni = true;
+        }
+      } else if (configType == 'trojan') {
+        needsSni = true;
+      } else if (configType == 'hysteria2') {
+        needsSni = true;
+        sniParam = 'peer';
+      }
+      hasSni = modifiedConfig.contains('sni=') || modifiedConfig.contains('peer=');
+    }
+
+    if (needsSni && !hasSni) {
+      final separator = modifiedConfig.contains('?') ? '&' : '?';
+      modifiedConfig = '${modifiedConfig}${separator}$sniParam=${Uri.encodeComponent(originalAddress)}';
+    }
+
+    final addressPattern = RegExp(r'@(.*?):');
+    final match = addressPattern.firstMatch(modifiedConfig);
+    if (match != null) {
+      final beforeMatch = modifiedConfig.substring(0, match.start + 1);
+      final afterMatch = modifiedConfig.substring(match.end - 1);
+      modifiedConfig = '$beforeMatch$resolvedIp$afterMatch';
+    }
+    
+    return modifiedConfig;
+  }
+
+  void _preserveSniInJson(Map<String, dynamic> outbound, String originalAddress) {
+    if (outbound['streamSettings'] != null) {
+      final streamSettings = outbound['streamSettings'] as Map<String, dynamic>;
+      
+      if (streamSettings['tlsSettings'] != null) {
+        final tlsSettings = streamSettings['tlsSettings'] as Map<String, dynamic>;
+        if (tlsSettings['serverName'] == null || tlsSettings['serverName'].toString().isEmpty) {
+          tlsSettings['serverName'] = originalAddress;
+        }
+      } else if (streamSettings['realitySettings'] != null) {
+        final realitySettings = streamSettings['realitySettings'] as Map<String, dynamic>;
+        if (realitySettings['serverNames'] != null && (realitySettings['serverNames'] as List).isEmpty) {
+          realitySettings['serverNames'] = [originalAddress];
+        }
+      }
+    } else if (outbound['protocol']?.toString().toLowerCase() == 'trojan') {
+      final settings = outbound['settings'] as Map<String, dynamic>;
+      if (settings['servers'] is List && (settings['servers'] as List).isNotEmpty) {
+        final server = (settings['servers'] as List)[0] as Map<String, dynamic>;
+        if (server['sni'] == null || server['sni'].toString().isEmpty) {
+          server['sni'] = originalAddress;
+        }
+      }
+    }
+  }
+
+  void _preserveHysteria2Sni(Map<String, dynamic> settings, String originalAddress) {
+    if (settings['sni'] == null || settings['sni'].toString().isEmpty) {
+      settings['sni'] = originalAddress;
+    }
+  }
+
+  Future<String> _resolveHostnameForRemark(String address, String originalRemark) async {
+    if (_isIpAddress(address) || address.isEmpty) {
+      return originalRemark;
+    }
+    try {
+      final resolvedIp = await _resolveHostname(address);
+      return resolvedIp ?? originalRemark;
+    } catch (e) {
+      return originalRemark;
+    }
+  }
+
+  Future<V2RayConfig?> _parseJsonConfig(Map<String, dynamic> configJson, String source, String? subscriptionId, bool forceResolve = false) async {
     try {
       final remark = configJson['remarks'] ?? 'Config ${DateTime.now().millisecondsSinceEpoch}';
-      final fullConfigStr = jsonEncode(configJson);
       
       String address = '';
       int port = 0;
@@ -776,6 +882,14 @@ class V2RayService extends ChangeNotifier {
                   final vnext = (settings['vnext'] as List)[0];
                   address = vnext['address'] ?? '';
                   port = vnext['port'] ?? 0;
+                  
+                  if (forceResolve && address.isNotEmpty && !_isIpAddress(address)) {
+                    final resolvedIp = await _resolveHostname(address);
+                    if (resolvedIp != null) {
+                      vnext['address'] = resolvedIp;
+                      _preserveSniInJson(outbound, address);
+                    }
+                  }
                 }
               } else if (protocol == 'shadowsocks' || protocol == 'socks' || 
                          protocol == 'http' || protocol == 'trojan') {
@@ -783,6 +897,14 @@ class V2RayService extends ChangeNotifier {
                   final server = (settings['servers'] as List)[0];
                   address = server['address'] ?? '';
                   port = server['port'] ?? 0;
+                  
+                  if (forceResolve && address.isNotEmpty && !_isIpAddress(address) && protocol == 'trojan') {
+                    final resolvedIp = await _resolveHostname(address);
+                    if (resolvedIp != null) {
+                      server['address'] = resolvedIp;
+                      _preserveSniInJson(outbound, address);
+                    }
+                  }
                 }
               } else if (protocol == 'wireguard') {
                 if (settings['peers'] is List && (settings['peers'] as List).isNotEmpty) {
@@ -792,11 +914,31 @@ class V2RayService extends ChangeNotifier {
                     final parts = endpoint.split(':');
                     address = parts[0];
                     port = int.tryParse(parts[1]) ?? 0;
+                    
+                    if (forceResolve && address.isNotEmpty && !_isIpAddress(address)) {
+                      final resolvedIp = await _resolveHostname(address);
+                      if (resolvedIp != null) {
+                        peer['endpoint'] = '$resolvedIp:$port';
+                      }
+                    }
                   }
                 }
               } else if (protocol == 'hysteria2' || protocol == 'hysteria') {
                 address = settings['address']?.toString() ?? '';
                 port = settings['port'] ?? 0;
+                
+                if (forceResolve && address.isNotEmpty && !_isIpAddress(address)) {
+                  final resolvedIp = await _resolveHostname(address);
+                  if (resolvedIp != null) {
+                    final originalAddress = address;
+                    settings['address'] = resolvedIp;
+                    if (protocol == 'hysteria2') {
+                      _preserveHysteria2Sni(settings, originalAddress);
+                    } else {
+                      _preserveSniInJson(outbound, originalAddress);
+                    }
+                  }
+                }
               }
             }
             
@@ -805,9 +947,12 @@ class V2RayService extends ChangeNotifier {
         }
       }
       
+      final fullConfigStr = jsonEncode(configJson);
+      final finalRemark = forceResolve ? await _resolveHostnameForRemark(address, remark) : remark;
+      
       return V2RayConfig(
         id: DateTime.now().millisecondsSinceEpoch.toString() + '_' + (address + port.toString()).hashCode.toString(),
-        remark: remark,
+        remark: finalRemark,
         address: address,
         port: port,
         configType: configType,

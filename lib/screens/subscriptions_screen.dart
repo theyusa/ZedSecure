@@ -189,7 +189,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
+               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -202,13 +202,45 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      '${subscription.configCount} servers • ${_formatDate(subscription.lastUpdate)}',
-                      style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
+                    Row(
+                      children: [
+                        Text(
+                          '${subscription.configCount} servers • ${_formatDate(subscription.lastUpdate)}',
+                          style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
+                        ),
+                        if (subscription.forceResolve) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: theme.primaryColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'IP',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: theme.primaryColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
               ),
+              Tooltip(
+                message: 'Force Resolve: Use IP address instead of domain name for server names',
+                child: CupertinoSwitch(
+                  value: subscription.forceResolve,
+                  onChanged: (value) => _toggleForceResolve(subscription, value),
+                  activeColor: theme.primaryColor,
+                  trackColor: AppTheme.systemGray.withOpacity(0.3),
+                ),
+              ),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => _updateSubscription(subscription),
                 child: Padding(
@@ -447,7 +479,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final service = Provider.of<V2RayService>(context, listen: false);
     try {
       final subscriptionId = DateTime.now().millisecondsSinceEpoch.toString();
-      final result = await service.parseSubscriptionUrl(url, subscriptionId: subscriptionId);
+      final result = await service.parseSubscriptionUrl(url, subscriptionId: subscriptionId, forceResolve: false);
       final configs = (result['configs'] as List).cast<V2RayConfig>();
       final subInfo = result['subInfo'] as Map<String, dynamic>?;
       
@@ -472,6 +504,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         download: subInfo?['download'] as int?,
         total: subInfo?['total'] as int?,
         expire: subInfo?['expire'] as DateTime?,
+        forceResolve: false,
       );
       _subscriptions.add(subscription);
       await service.saveSubscriptions(_subscriptions);
@@ -486,7 +519,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     _showSnackBar('Loading', 'Fetching servers...');
     final service = Provider.of<V2RayService>(context, listen: false);
     try {
-      final result = await service.parseSubscriptionUrl(subscription.url, subscriptionId: subscription.id);
+      final result = await service.parseSubscriptionUrl(subscription.url, subscriptionId: subscription.id, forceResolve: subscription.forceResolve);
       final configs = (result['configs'] as List).cast<V2RayConfig>();
       final subInfo = result['subInfo'] as Map<String, dynamic>?;
       
@@ -538,7 +571,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   Future<void> _updateSubscription(Subscription subscription) async {
     final service = Provider.of<V2RayService>(context, listen: false);
     try {
-      final result = await service.parseSubscriptionUrl(subscription.url, subscriptionId: subscription.id);
+      final result = await service.parseSubscriptionUrl(subscription.url, subscriptionId: subscription.id, forceResolve: subscription.forceResolve);
       final configs = (result['configs'] as List).cast<V2RayConfig>();
       final subInfo = result['subInfo'] as Map<String, dynamic>?;
       
@@ -585,6 +618,35 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       await service.saveSubscriptions(_subscriptions);
       await _loadSubscriptions();
       _showSnackBar('Deleted', 'Subscription deleted');
+    }
+  }
+
+  Future<void> _toggleForceResolve(Subscription subscription, bool value) async {
+    final theme = Theme.of(context);
+    if (value && subscription.configCount > 0) {
+      final shouldUpdate = await CustomGlassDialog.show(
+        context: context,
+        title: 'Force Resolve',
+        content: 'Update subscription to apply IP-based server names?',
+        leadingIcon: CupertinoIcons.cloud_refresh,
+        iconColor: theme.primaryColor,
+        primaryButtonText: 'Update',
+        secondaryButtonText: 'Cancel',
+      );
+      
+      if (shouldUpdate == true) {
+        await _updateSubscription(subscription.copyWith(forceResolve: value));
+        return;
+      }
+    }
+    
+    final updatedSub = subscription.copyWith(forceResolve: value);
+    final index = _subscriptions.indexWhere((s) => s.id == subscription.id);
+    if (index != -1) {
+      _subscriptions[index] = updatedSub;
+      final service = Provider.of<V2RayService>(context, listen: false);
+      await service.saveSubscriptions(_subscriptions);
+      setState(() {});
     }
   }
 }

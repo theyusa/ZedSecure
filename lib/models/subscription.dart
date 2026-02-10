@@ -10,6 +10,7 @@ class Subscription {
   final DateTime? expire;
   final String? webPageUrl;
   final String? supportUrl;
+  final bool forceResolve;
 
   Subscription({
     required this.id,
@@ -23,6 +24,7 @@ class Subscription {
     this.expire,
     this.webPageUrl,
     this.supportUrl,
+    this.forceResolve = false,
   });
 
   factory Subscription.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,7 @@ class Subscription {
       expire: json['expire'] != null ? DateTime.parse(json['expire'] as String) : null,
       webPageUrl: json['webPageUrl'] as String?,
       supportUrl: json['supportUrl'] as String?,
+      forceResolve: json['forceResolve'] as bool? ?? false,
     );
   }
 
@@ -54,6 +57,7 @@ class Subscription {
       'expire': expire?.toIso8601String(),
       'webPageUrl': webPageUrl,
       'supportUrl': supportUrl,
+      'forceResolve': forceResolve,
     };
   }
 
@@ -69,6 +73,7 @@ class Subscription {
     DateTime? expire,
     String? webPageUrl,
     String? supportUrl,
+    bool? forceResolve,
   }) {
     return Subscription(
       id: id ?? this.id,
@@ -82,6 +87,7 @@ class Subscription {
       expire: expire ?? this.expire,
       webPageUrl: webPageUrl ?? this.webPageUrl,
       supportUrl: supportUrl ?? this.supportUrl,
+      forceResolve: forceResolve ?? this.forceResolve,
     );
   }
 
