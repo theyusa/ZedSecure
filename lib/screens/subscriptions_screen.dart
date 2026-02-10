@@ -216,33 +216,35 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                               color: theme.primaryColor.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text(
-                              'IP',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: theme.primaryColor,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  CupertinoIcons.globe,
+                                  size: 10,
+                                  color: theme.primaryColor,
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  'IP',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: theme.primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ],
                     ),
-                  ],
-                ),
-              ),
-              Tooltip(
-                message: 'Force Resolve: Use IP address instead of domain name for server names',
-                child: CupertinoSwitch(
-                  value: subscription.forceResolve,
-                  onChanged: (value) => _toggleForceResolve(subscription, value),
-                  activeColor: theme.primaryColor,
-                  trackColor: AppTheme.systemGray.withOpacity(0.3),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => _updateSubscription(subscription),
+                   ],
+                 ),
+               ),
+               const SizedBox(width: 8),
+               GestureDetector(
+                 onTap: () => _updateSubscription(subscription),
                 child: Padding(
                   padding: const EdgeInsets.all(8),
                   child: Icon(CupertinoIcons.refresh, size: 20, color: theme.primaryColor),
@@ -659,35 +661,6 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       await service.saveSubscriptions(_subscriptions);
       await _loadSubscriptions();
       _showSnackBar('Deleted', 'Subscription deleted');
-    }
-  }
-
-  Future<void> _toggleForceResolve(Subscription subscription, bool value) async {
-    final theme = Theme.of(context);
-    if (value && subscription.configCount > 0) {
-      final shouldUpdate = await CustomGlassDialog.show(
-        context: context,
-        title: 'Force Resolve',
-        content: 'Update subscription to apply IP-based server names?',
-        leadingIcon: CupertinoIcons.refresh,
-        iconColor: theme.primaryColor,
-        primaryButtonText: 'Update',
-        secondaryButtonText: 'Cancel',
-      );
-      
-      if (shouldUpdate == true) {
-        await _updateSubscription(subscription.copyWith(forceResolve: value));
-        return;
-      }
-    }
-    
-    final updatedSub = subscription.copyWith(forceResolve: value);
-    final index = _subscriptions.indexWhere((s) => s.id == subscription.id);
-    if (index != -1) {
-      _subscriptions[index] = updatedSub;
-      final service = Provider.of<V2RayService>(context, listen: false);
-      await service.saveSubscriptions(_subscriptions);
-      setState(() {});
     }
   }
 }

@@ -578,7 +578,7 @@ class V2RayService extends ChangeNotifier {
 
   Future<List<V2RayConfig>> parseSubscriptionContent(String content) async {
     try {
-      return _parseContent(content, source: 'subscription', forceResolve: false);
+      return await _parseContent(content, source: 'subscription', forceResolve: false);
     } catch (e) {
       debugPrint('Error parsing subscription content: $e');
       
@@ -587,6 +587,24 @@ class V2RayService extends ChangeNotifier {
       } else {
         throw Exception('Failed to parse subscription file: ${e.toString()}');
       }
+    }
+  }
+
+  Future<V2RayConfig?> parseConfigFromClipboard(String clipboardText) async {
+    try {
+      final configs = await _parseContent(clipboardText, source: 'manual', forceResolve: false);
+      if (configs.isNotEmpty) {
+        final allConfigs = await loadConfigs();
+        allConfigs.add(configs.first);
+        await saveConfigs(allConfigs);
+        return configs.first;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error parsing clipboard config: $e');
+      throw Exception('Invalid config format');
+    }
+  }
     }
   }
 
@@ -861,6 +879,8 @@ class V2RayService extends ChangeNotifier {
       int port = 0;
       String configType = 'custom';
       String finalAddress = '';
+      String originalAddress = '';
+      String resolvedIp = '';
       
       if (configJson['outbounds'] is List) {
         final outbounds = configJson['outbounds'] as List;
@@ -886,13 +906,15 @@ class V2RayService extends ChangeNotifier {
                   final vnext = (settings['vnext'] as List)[0];
                   address = vnext['address'] ?? '';
                   port = vnext['port'] ?? 0;
+                  originalAddress = address;
                   finalAddress = address;
                   
                   if (forceResolve && address.isNotEmpty && !_isIpAddress(address)) {
-                    final resolvedIp = await _resolveHostname(address);
-                    if (resolvedIp != null) {
-                      finalAddress = resolvedIp;
-                      vnext['address'] = resolvedIp;
+                    final ip = await _resolveHostname(address);
+                    if (ip != null) {
+                      resolvedIp = ip;
+                      finalAddress = ip;
+                      vnext['address'] = ip;
                       _preserveSniInJson(outboundMap, address);
                     }
                   }
@@ -903,13 +925,15 @@ class V2RayService extends ChangeNotifier {
                   final server = (settings['servers'] as List)[0];
                   address = server['address'] ?? '';
                   port = server['port'] ?? 0;
+                  originalAddress = address;
                   finalAddress = address;
                   
                   if (forceResolve && address.isNotEmpty && !_isIpAddress(address) && protocol == 'trojan') {
-                    final resolvedIp = await _resolveHostname(address);
-                    if (resolvedIp != null) {
-                      finalAddress = resolvedIp;
-                      server['address'] = resolvedIp;
+                    final ip = await _resolveHostname(address);
+                    if (ip != null) {
+                      resolvedIp = ip;
+                      finalAddress = ip;
+                      server['address'] = ip;
                       _preserveSniInJson(outboundMap, address);
                     }
                   }
@@ -922,13 +946,15 @@ class V2RayService extends ChangeNotifier {
                     final parts = endpoint.split(':');
                     address = parts[0];
                     port = int.tryParse(parts[1]) ?? 0;
+                    originalAddress = address;
                     finalAddress = address;
                     
                     if (forceResolve && address.isNotEmpty && !_isIpAddress(address)) {
-                      final resolvedIp = await _resolveHostname(address);
-                      if (resolvedIp != null) {
-                        finalAddress = resolvedIp;
-                        peer['endpoint'] = '$resolvedIp:$port';
+                      final ip = await _resolveHostname(address);
+                      if (ip != null) {
+                        resolvedIp = ip;
+                        finalAddress = ip;
+                        peer['endpoint'] = '$ip:$port';
                       }
                     }
                   }
@@ -936,18 +962,20 @@ class V2RayService extends ChangeNotifier {
               } else if (protocol == 'hysteria2' || protocol == 'hysteria') {
                 address = settings['address']?.toString() ?? '';
                 port = settings['port'] ?? 0;
+                originalAddress = address;
                 finalAddress = address;
                 
                 if (forceResolve && address.isNotEmpty && !_isIpAddress(address)) {
-                  final resolvedIp = await _resolveHostname(address);
-                  if (resolvedIp != null) {
-                    finalAddress = resolvedIp;
-                    final originalAddress = address;
-                    settings['address'] = resolvedIp;
+                  final ip = await _resolveHostname(address);
+                  if (ip != null) {
+                    resolvedIp = ip;
+                    finalAddress = ip;
+                    final originalAddr = address;
+                    settings['address'] = ip;
                     if (protocol == 'hysteria2') {
-                      _preserveHysteria2Sni(settings, originalAddress);
+                      _preserveHysteria2Sni(settings, originalAddr);
                     } else {
-                      _preserveSniInJson(outboundMap, originalAddress);
+                      _preserveSniInJson(outboundMap, originalAddr);
                     }
                   }
                 }
@@ -961,11 +989,8 @@ class V2RayService extends ChangeNotifier {
       
       final fullConfigStr = jsonEncode(configJson);
       String displayRemark = originalRemark;
-      if (forceResolve && finalAddress.isNotEmpty && !_isIpAddress(finalAddress)) {
-        final resolvedIp = await _resolveHostname(finalAddress);
-        if (resolvedIp != null) {
-          displayRemark = '$originalRemark ($resolvedIp)';
-        }
+      if (forceResolve && resolvedIp.isNotEmpty) {
+        displayRemark = '$originalRemark ($resolvedIp)';
       }
       
       return V2RayConfig(
