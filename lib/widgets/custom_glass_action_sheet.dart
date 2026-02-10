@@ -132,33 +132,52 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                 ),
                 margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                 decoration: AppTheme.futuristicGlassDecoration(
-                  borderRadius: 32,
+                  borderRadius: 36,
                   isDark: isDark,
                   glowColor: AppTheme.primaryBlue,
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(32),
+                  borderRadius: BorderRadius.circular(36),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (widget.title != null) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                            child: Text(
-                              widget.title!.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.systemGray,
-                                letterSpacing: 1.2,
+                    filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: isDark 
+                            ? [Colors.white.withOpacity(0.05), Colors.white.withOpacity(0.02)]
+                            : [Colors.white.withOpacity(0.4), Colors.white.withOpacity(0.1)],
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.title != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+                              child: Text(
+                                widget.title!.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.systemGray,
+                                  letterSpacing: 1.5,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                              textAlign: TextAlign.center,
                             ),
-                          ),
-                          Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
-                        ],
+                            Container(
+                              height: 1,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: isDark 
+                                    ? [Colors.white12, Colors.transparent, Colors.white12]
+                                    : [Colors.black12, Colors.transparent, Colors.black12],
+                                ),
+                              ),
+                            ),
+                          ],
                         Flexible(
                           child: ListView.separated(
                             shrinkWrap: true,
@@ -178,56 +197,52 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                                     action.onTap?.call();
                                   },
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(16),
+                                      borderRadius: BorderRadius.circular(20),
                                       gradient: isSelected
                                           ? LinearGradient(
                                               colors: [
-                                                AppTheme.primaryBlue.withOpacity(0.15),
-                                                AppTheme.primaryBlue.withOpacity(0.02),
+                                                AppTheme.primaryBlue.withOpacity(0.18),
+                                                AppTheme.primaryBlue.withOpacity(0.04),
                                               ],
-                                              begin: Alignment.centerLeft,
-                                              end: Alignment.centerRight,
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
                                             )
                                           : null,
+                                      border: isSelected ? Border.all(
+                                        color: AppTheme.primaryBlue.withOpacity(0.2),
+                                        width: 1,
+                                      ) : null,
                                     ),
                                     child: Row(
                                       children: [
-                                        if (isSelected)
+                                        if (action.leading != null)
                                           Container(
-                                            width: 4,
-                                            height: 20,
-                                            decoration: BoxDecoration(
-                                              color: AppTheme.primaryBlue,
-                                              borderRadius: BorderRadius.circular(2),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: AppTheme.primaryBlue.withOpacity(0.5),
-                                                  blurRadius: 8,
-                                                )
-                                              ],
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: isSelected ? null : BoxDecoration(
+                                              color: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Opacity(
+                                              opacity: isSelected ? 1.0 : 0.8,
+                                              child: action.leading!,
                                             ),
                                           ),
-                                        if (isSelected) const SizedBox(width: 12),
                                         if (action.leading != null)
-                                          Opacity(
-                                            opacity: isSelected ? 1.0 : 0.7,
-                                            child: action.leading!,
-                                          ),
-                                        if (action.leading != null)
-                                          const SizedBox(width: 12),
+                                          const SizedBox(width: 16),
                                         Expanded(
                                           child: Text(
                                             action.title,
                                             style: action.textStyle ??
                                                 TextStyle(
                                                   fontSize: 17,
-                                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                                                   color: action.isDestructive
                                                       ? AppTheme.disconnectedRed
                                                       : (isSelected ? AppTheme.primaryBlue : (isDark ? Colors.white : Colors.black87)),
+                                                  letterSpacing: -0.3,
                                                 ),
                                             textAlign: action.leading == null ? TextAlign.center : TextAlign.left,
                                           ),

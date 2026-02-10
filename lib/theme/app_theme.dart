@@ -74,24 +74,24 @@ class AppTheme {
       borderRadius: BorderRadius.circular(borderRadius),
       color: isDark 
           ? Colors.white.withOpacity(0.08)
-          : Colors.white.withOpacity(0.92),
+          : Colors.white.withOpacity(0.65),
       border: Border.all(
         color: isDark 
             ? Colors.white.withOpacity(0.12)
-            : Colors.black.withOpacity(0.05),
-        width: 0.5,
+            : Colors.white.withOpacity(0.4),
+        width: 1.0,
       ),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(isDark ? 0.4 : 0.15),
-          blurRadius: 40,
-          offset: const Offset(0, 15),
+          color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+          blurRadius: 30,
+          offset: const Offset(0, 12),
           spreadRadius: -5,
         ),
         if (glowColor != null && isDark)
           BoxShadow(
-            color: glowColor.withOpacity(0.15),
-            blurRadius: 20,
+            color: glowColor.withOpacity(0.12),
+            blurRadius: 25,
             spreadRadius: -2,
           ),
       ],

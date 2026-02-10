@@ -139,69 +139,105 @@ class CustomGlassPopupState extends State<CustomGlassPopup> {
         ),
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         decoration: AppTheme.futuristicGlassDecoration(
-          borderRadius: 32,
+          borderRadius: 36,
           isDark: isDark,
           glowColor: widget.iconColor ?? AppTheme.primaryBlue,
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(36),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-            child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              child: Padding(
-                padding: widget.padding ?? const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (widget.title != null || widget.leadingIcon != null) ...[
-                      Row(
-                        children: [
-                           if (widget.leadingIcon != null) ...[
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: (widget.iconColor ?? AppTheme.primaryBlue).withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: (widget.iconColor ?? AppTheme.primaryBlue).withOpacity(0.2),
-                                  width: 1,
+            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark 
+                    ? [Colors.white.withOpacity(0.05), Colors.white.withOpacity(0.02)]
+                    : [Colors.white.withOpacity(0.4), Colors.white.withOpacity(0.1)],
+                ),
+              ),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: widget.padding ?? const EdgeInsets.all(28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (widget.title != null || widget.leadingIcon != null) ...[
+                        Row(
+                          children: [
+                            if (widget.leadingIcon != null) ...[
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      (widget.iconColor ?? AppTheme.primaryBlue).withOpacity(0.2),
+                                      (widget.iconColor ?? AppTheme.primaryBlue).withOpacity(0.05),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: (widget.iconColor ?? AppTheme.primaryBlue).withOpacity(0.25),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Icon(
+                                  widget.leadingIcon,
+                                  color: widget.iconColor ?? AppTheme.primaryBlue,
+                                  size: 22,
                                 ),
                               ),
-                              child: Icon(
-                                widget.leadingIcon,
-                                color: widget.iconColor ?? AppTheme.primaryBlue,
-                                size: 20,
+                              const SizedBox(width: 16),
+                            ],
+                            Expanded(
+                              child: Text(
+                                widget.title ?? '',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                  color: isDark ? Colors.white : Colors.black,
+                                  letterSpacing: -0.8,
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 12),
                           ],
-                          Expanded(
-                            child: Text(
-                              widget.title ?? '',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? Colors.white : Colors.black,
-                                letterSpacing: -0.5,
-                              ),
+                        ),
+                        const SizedBox(height: 24),
+                        Container(
+                          height: 1,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: isDark 
+                                ? [Colors.white12, Colors.transparent]
+                                : [Colors.black12, Colors.transparent],
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
-                      const SizedBox(height: 20),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      Flexible(child: widget.content),
+                      if (widget.actions != null && widget.actions!.isNotEmpty) ...[
+                        const SizedBox(height: 28),
+                        Container(
+                          height: 1,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: isDark 
+                                ? [Colors.white12, Colors.transparent]
+                                : [Colors.black12, Colors.transparent],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ...widget.actions!,
+                      ],
                     ],
-                    Flexible(child: widget.content),
-                    if (widget.actions != null && widget.actions!.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                      Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
-                      const SizedBox(height: 16),
-                      ...widget.actions!,
-                    ],
-                  ],
+                  ),
                 ),
               ),
             ),
