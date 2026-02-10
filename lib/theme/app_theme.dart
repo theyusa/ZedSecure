@@ -165,8 +165,8 @@ class AppTheme {
 
   static BoxDecoration iosCardDecoration({bool isDark = true, BuildContext? context}) {
     final Color bgColor;
-    final Color? borderColor;
-    final List<BoxShadow>? shadows;
+    late final Color? borderColor;
+    late final List<BoxShadow>? shadows;
 
     if (context != null) {
       final theme = Theme.of(context);
@@ -196,11 +196,17 @@ class AppTheme {
              ),
            ];
            borderColor = Colors.white.withOpacity(0.05);
+        } else {
+           // Light theme: no shadow, subtle border
+           borderColor = Colors.black.withOpacity(0.05);
+           shadows = null;
         }
       }
     } else {
       // Fallback for cases without context
       bgColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+      borderColor = null;
+      shadows = null;
     }
 
     return BoxDecoration(
