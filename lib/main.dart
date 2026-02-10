@@ -121,10 +121,23 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final bool isModernDark = theme.scaffoldBackgroundColor == const Color(0xFF121212);
     
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
-      color: theme.scaffoldBackgroundColor,
+      decoration: isModernDark
+          ? BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFF121212),
+                  const Color(0xFF1A1A2E),
+                ],
+                stops: const [0.0, 1.0],
+              ),
+            )
+          : BoxDecoration(color: theme.scaffoldBackgroundColor),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         extendBody: true,
