@@ -126,15 +126,21 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
-    return Scaffold(
-      extendBody: true,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      color: theme.scaffoldBackgroundColor,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        extendBody: true,
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: _screens,
+        ),
+        bottomNavigationBar: _buildGlassTabBar(isDark),
       ),
-      bottomNavigationBar: _buildGlassTabBar(isDark),
     );
   }
 

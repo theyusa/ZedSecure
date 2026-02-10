@@ -66,7 +66,7 @@ class AppTheme {
   }
 
   static BoxDecoration futuristicGlassDecoration({
-    double borderRadius = 28,
+    double borderRadius = 24,
     bool isDark = true,
     Color? glowColor,
   }) {
@@ -74,26 +74,19 @@ class AppTheme {
       borderRadius: BorderRadius.circular(borderRadius),
       color: isDark 
           ? Colors.white.withOpacity(0.08)
-          : Colors.white.withOpacity(0.65),
+          : Colors.white.withOpacity(0.85),
       border: Border.all(
         color: isDark 
-            ? Colors.white.withOpacity(0.12)
-            : Colors.white.withOpacity(0.4),
+            ? Colors.white.withOpacity(0.1)
+            : Colors.black.withOpacity(0.08),
         width: 1.0,
       ),
       boxShadow: [
         BoxShadow(
           color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
           blurRadius: 30,
-          offset: const Offset(0, 12),
-          spreadRadius: -5,
+          offset: const Offset(0, 10),
         ),
-        if (glowColor != null && isDark)
-          BoxShadow(
-            color: glowColor.withOpacity(0.12),
-            blurRadius: 25,
-            spreadRadius: -2,
-          ),
       ],
     );
   }
