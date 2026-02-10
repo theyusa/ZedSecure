@@ -157,7 +157,7 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          Divider(height: 1, color: isDark ? Colors.white10 : Colors.black10),
+                          Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withOpacity(0.06)),
                         ],
                         Flexible(
                           child: ListView.separated(
@@ -222,7 +222,7 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                           ),
                         ),
                         if (widget.cancelText != null) ...[
-                          Divider(height: 1, color: isDark ? Colors.white10 : Colors.black10),
+                          Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withOpacity(0.06)),
                           Material(
                             color: Colors.transparent,
                             child: InkWell(
