@@ -91,7 +91,7 @@ class _DialogAnimation extends StatelessWidget {
   Widget build(BuildContext context) {
     final curvedAnimation = CurvedAnimation(
       parent: animation,
-      curve: Curves.easeOutBack,
+      curve: Curves.easeOutExpo,
       reverseCurve: Curves.easeInCubic,
     );
 
@@ -101,7 +101,7 @@ class _DialogAnimation extends StatelessWidget {
         return Opacity(
           opacity: curvedAnimation.value,
           child: Transform.scale(
-            scale: 0.9 + (0.1 * curvedAnimation.value),
+            scale: 0.85 + (0.15 * curvedAnimation.value),
             alignment: Alignment.center,
             child: child,
           ),
@@ -129,48 +129,44 @@ class CustomGlassDialogState extends State<CustomGlassDialog> {
       onTap: () {},
       child: Container(
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.85,
+          maxWidth: MediaQuery.of(context).size.width * 0.88,
           maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
         margin: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: isDark ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.95),
-          border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.05),
-            width: 0.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 30,
-              offset: const Offset(0, 10),
-              spreadRadius: 0,
-            ),
-          ],
+        decoration: AppTheme.futuristicGlassDecoration(
+          borderRadius: 32,
+          isDark: isDark,
+          glowColor: widget.iconColor ?? (widget.isPrimaryDestructive ? AppTheme.disconnectedRed : AppTheme.primaryBlue),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(32),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (widget.leadingIcon != null) ...[
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
                             color: (widget.iconColor ?? (widget.isPrimaryDestructive
                                     ? AppTheme.disconnectedRed
                                     : AppTheme.primaryBlue))
-                                .withOpacity(0.15),
+                                .withOpacity(0.12),
                             shape: BoxShape.circle,
+                            border: Border.all(
+                              color: (widget.iconColor ?? (widget.isPrimaryDestructive
+                                      ? AppTheme.disconnectedRed
+                                      : AppTheme.primaryBlue))
+                                  .withOpacity(0.2),
+                              width: 1.5,
+                            ),
                           ),
                           child: Icon(
                             widget.leadingIcon,
@@ -178,18 +174,19 @@ class CustomGlassDialogState extends State<CustomGlassDialog> {
                                 (widget.isPrimaryDestructive
                                     ? AppTheme.disconnectedRed
                                     : AppTheme.primaryBlue),
-                            size: 32,
+                            size: 38,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                       ],
                       if (widget.title != null) ...[
                         Text(
                           widget.title!,
                           style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
                             color: isDark ? Colors.white : Colors.black,
+                            letterSpacing: -0.5,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -199,8 +196,8 @@ class CustomGlassDialogState extends State<CustomGlassDialog> {
                         Text(
                           widget.content!,
                           style: TextStyle(
-                            fontSize: 15,
-                            color: isDark ? Colors.white70 : Colors.black87,
+                            fontSize: 16,
+                            color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
                             height: 1.5,
                           ),
                           textAlign: TextAlign.center,
@@ -210,9 +207,8 @@ class CustomGlassDialogState extends State<CustomGlassDialog> {
                   ),
                 ),
                 if (widget.primaryButtonText != null || widget.secondaryButtonText != null) ...[
-                  const Divider(height: 1, color: Colors.black12),
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                     child: Row(
                       children: [
                         if (widget.secondaryButtonText != null) ...[
@@ -261,23 +257,23 @@ class CustomGlassDialogState extends State<CustomGlassDialog> {
     bool isDestructive = false,
     required bool isDark,
   }) {
-    final backgroundColor = isPrimary
-        ? (isDestructive ? AppTheme.disconnectedRed : AppTheme.primaryBlue)
-        : (isDark ? Colors.white12 : Colors.black12);
-
-    final textColor = isPrimary ? Colors.white : (isDark ? Colors.white : Colors.black);
-
-    return CupertinoButton(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      color: backgroundColor,
-      borderRadius: BorderRadius.circular(12),
-      onPressed: onPressed,
-      child: Text(
-        text,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
+    return Container(
+      decoration: AppTheme.futuristicButtonDecoration(
+        isPrimary: isPrimary,
+        isDestructive: isDestructive,
+        isDark: isDark,
+      ),
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        borderRadius: BorderRadius.circular(16),
+        onPressed: onPressed,
+        child: Text(
+          text,
+          style: TextStyle(
+            color: isPrimary ? Colors.white : (isDark ? Colors.white.withOpacity(0.9) : Colors.black.withOpacity(0.9)),
+            fontSize: 16,
+            fontWeight: isPrimary ? FontWeight.w700 : FontWeight.w600,
+          ),
         ),
       ),
     );

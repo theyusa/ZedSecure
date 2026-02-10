@@ -77,12 +77,12 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
     _slideAnimation = CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeOutCubic,
+      curve: Curves.easeOutExpo,
     );
     _fadeAnimation = CurvedAnimation(
       parent: _animationController,
@@ -130,55 +130,42 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                 constraints: BoxConstraints(
                   maxHeight: MediaQuery.of(context).size.height * 0.85,
                 ),
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  color: isDark ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.95),
-                  border: Border.all(
-                    color: isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.05),
-                    width: 0.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 30,
-                      offset: const Offset(0, -10),
-                    ),
-                  ],
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                decoration: AppTheme.futuristicGlassDecoration(
+                  borderRadius: 32,
+                  isDark: isDark,
+                  glowColor: AppTheme.primaryBlue,
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(32),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (widget.title != null) ...[
                           Container(
-                            padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                             child: Text(
-                              widget.title!,
+                              widget.title!.toUpperCase(),
                               style: TextStyle(
                                 fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w700,
                                 color: AppTheme.systemGray,
-                                letterSpacing: 0.5,
+                                letterSpacing: 1.2,
                               ),
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          const Divider(height: 1, color: Colors.black12),
+                          Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
                         ],
                         Flexible(
                           child: ListView.separated(
                             shrinkWrap: true,
                             physics: const ClampingScrollPhysics(),
-                            padding: EdgeInsets.zero,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
                             itemCount: widget.actions.length,
-                            separatorBuilder: (context, index) => Divider(
-                              height: 1,
-                              color: isDark ? Colors.white12 : Colors.black12,
-                            ),
+                            separatorBuilder: (context, index) => const SizedBox(height: 4),
                             itemBuilder: (context, index) {
                               final action = widget.actions[index];
                               final isSelected = action.isDefault;
@@ -191,16 +178,44 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                                     action.onTap?.call();
                                   },
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                                    margin: const EdgeInsets.symmetric(horizontal: 12),
                                     decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? AppTheme.primaryBlue.withOpacity(0.08)
-                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(16),
+                                      gradient: isSelected
+                                          ? LinearGradient(
+                                              colors: [
+                                                AppTheme.primaryBlue.withOpacity(0.15),
+                                                AppTheme.primaryBlue.withOpacity(0.02),
+                                              ],
+                                              begin: Alignment.centerLeft,
+                                              end: Alignment.centerRight,
+                                            )
+                                          : null,
                                     ),
                                     child: Row(
                                       children: [
+                                        if (isSelected)
+                                          Container(
+                                            width: 4,
+                                            height: 20,
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.primaryBlue,
+                                              borderRadius: BorderRadius.circular(2),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: AppTheme.primaryBlue.withOpacity(0.5),
+                                                  blurRadius: 8,
+                                                )
+                                              ],
+                                            ),
+                                          ),
+                                        if (isSelected) const SizedBox(width: 12),
                                         if (action.leading != null)
-                                          action.leading!,
+                                          Opacity(
+                                            opacity: isSelected ? 1.0 : 0.7,
+                                            child: action.leading!,
+                                          ),
                                         if (action.leading != null)
                                           const SizedBox(width: 12),
                                         Expanded(
@@ -209,12 +224,12 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                                             style: action.textStyle ??
                                                 TextStyle(
                                                   fontSize: 17,
-                                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                                                   color: action.isDestructive
                                                       ? AppTheme.disconnectedRed
-                                                      : (isSelected ? AppTheme.primaryBlue : (isDark ? Colors.white : Colors.black)),
+                                                      : (isSelected ? AppTheme.primaryBlue : (isDark ? Colors.white : Colors.black87)),
                                                 ),
-                                            textAlign: TextAlign.center,
+                                            textAlign: action.leading == null ? TextAlign.center : TextAlign.left,
                                           ),
                                         ),
                                         if (action.trailing != null)
@@ -230,8 +245,7 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                           ),
                         ),
                         if (widget.cancelText != null) ...[
-                          const SizedBox(height: 8),
-                          const Divider(height: 1, color: Colors.black12),
+                          Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
                           Material(
                             color: Colors.transparent,
                             child: InkWell(
@@ -240,12 +254,13 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                                 widget.onCancel?.call();
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                                 child: Text(
                                   widget.cancelText!,
                                   style: TextStyle(
                                     fontSize: 17,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w700,
                                     color: AppTheme.systemGray,
                                   ),
                                   textAlign: TextAlign.center,
@@ -254,7 +269,7 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                             ),
                           ),
                         ],
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                       ],
                     ),
                   ),

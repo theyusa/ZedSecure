@@ -62,17 +62,62 @@ class AppTheme {
     double borderRadius = 16,
     bool isDark = true,
   }) {
+    return futuristicGlassDecoration(borderRadius: borderRadius, isDark: isDark);
+  }
+
+  static BoxDecoration futuristicGlassDecoration({
+    double borderRadius = 28,
+    bool isDark = true,
+    Color? glowColor,
+  }) {
     return BoxDecoration(
       borderRadius: BorderRadius.circular(borderRadius),
       color: isDark 
-          ? Colors.white.withOpacity(0.1)
-          : Colors.white.withOpacity(0.8),
+          ? Colors.white.withOpacity(0.08)
+          : Colors.white.withOpacity(0.92),
       border: Border.all(
         color: isDark 
-            ? Colors.white.withOpacity(0.2)
+            ? Colors.white.withOpacity(0.12)
             : Colors.black.withOpacity(0.05),
         width: 0.5,
       ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(isDark ? 0.4 : 0.15),
+          blurRadius: 40,
+          offset: const Offset(0, 15),
+          spreadRadius: -5,
+        ),
+        if (glowColor != null && isDark)
+          BoxShadow(
+            color: glowColor.withOpacity(0.15),
+            blurRadius: 20,
+            spreadRadius: -2,
+          ),
+      ],
+    );
+  }
+
+  static BoxDecoration futuristicButtonDecoration({
+    required bool isPrimary,
+    bool isDestructive = false,
+    bool isDark = true,
+  }) {
+    final baseColor = isPrimary
+        ? (isDestructive ? disconnectedRed : primaryBlue)
+        : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05));
+
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(16),
+      color: baseColor,
+      boxShadow: isPrimary && isDark ? [
+        BoxShadow(
+          color: (isDestructive ? disconnectedRed : primaryBlue).withOpacity(0.3),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+          spreadRadius: -2,
+        )
+      ] : [],
     );
   }
 

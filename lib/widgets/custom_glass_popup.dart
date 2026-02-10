@@ -91,7 +91,7 @@ class _PopupAnimation extends StatelessWidget {
   Widget build(BuildContext context) {
     final curvedAnimation = CurvedAnimation(
       parent: animation,
-      curve: Curves.easeOutBack,
+      curve: Curves.easeOutExpo,
       reverseCurve: Curves.easeInCubic,
     );
 
@@ -101,7 +101,7 @@ class _PopupAnimation extends StatelessWidget {
         return Opacity(
           opacity: curvedAnimation.value,
           child: Transform.scale(
-            scale: 0.9 + (0.1 * curvedAnimation.value),
+            scale: 0.85 + (0.15 * curvedAnimation.value),
             alignment: Alignment.center,
             child: child,
           ),
@@ -137,27 +137,16 @@ class CustomGlassPopupState extends State<CustomGlassPopup> {
           maxWidth: widget.maxWidth ?? 400,
           maxHeight: widget.maxHeight ?? MediaQuery.of(context).size.height * 0.8,
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          color: isDark ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.95),
-          border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.05),
-            width: 0.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.25),
-              blurRadius: 40,
-              offset: const Offset(0, 15),
-              spreadRadius: 2,
-            ),
-          ],
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        decoration: AppTheme.futuristicGlassDecoration(
+          borderRadius: 32,
+          isDark: isDark,
+          glowColor: widget.iconColor ?? AppTheme.primaryBlue,
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(32),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
             child: SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
               child: Padding(
@@ -173,8 +162,12 @@ class CustomGlassPopupState extends State<CustomGlassPopup> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: (widget.iconColor ?? AppTheme.primaryBlue).withOpacity(0.15),
+                                color: (widget.iconColor ?? AppTheme.primaryBlue).withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: (widget.iconColor ?? AppTheme.primaryBlue).withOpacity(0.2),
+                                  width: 1,
+                                ),
                               ),
                               child: Icon(
                                 widget.leadingIcon,
@@ -188,22 +181,23 @@ class CustomGlassPopupState extends State<CustomGlassPopup> {
                             child: Text(
                               widget.title ?? '',
                               style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
                                 color: isDark ? Colors.white : Colors.black,
+                                letterSpacing: -0.5,
                               ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 20),
-                      const Divider(height: 1, color: Colors.black12),
+                      Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
                       const SizedBox(height: 20),
                     ],
                     Flexible(child: widget.content),
                     if (widget.actions != null && widget.actions!.isNotEmpty) ...[
                       const SizedBox(height: 24),
-                      const Divider(height: 1, color: Colors.black12),
+                      Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
                       const SizedBox(height: 16),
                       ...widget.actions!,
                     ],
