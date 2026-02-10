@@ -1,63 +1,104 @@
 import 'package:flutter/material.dart';
 import 'package:zedsecure/services/mmkv_manager.dart';
+import 'package:zedsecure/theme/app_theme.dart';
+
+enum ThemeStyle {
+  system,
+  light,
+  dark,
+  amoled,
+  midnight,
+  deepBlue,
+  emerald,
+}
 
 class ThemeService extends ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeStyle _themeStyle = ThemeStyle.system;
 
-  ThemeMode get themeMode => _themeMode;
-  bool get isDarkMode => _themeMode == ThemeMode.dark;
+  ThemeStyle get themeStyle => _themeStyle;
+
+  ThemeMode get themeMode {
+    switch (_themeStyle) {
+      case ThemeStyle.light:
+        return ThemeMode.light;
+      case ThemeStyle.system:
+        return ThemeMode.system;
+      default:
+        return ThemeMode.dark;
+    }
+  }
+
+  bool get isDarkMode => themeMode == ThemeMode.dark;
 
   ThemeService() {
     _loadTheme();
   }
 
+  ThemeData getThemeData(BuildContext context) {
+    final Brightness systemBrightness = MediaQuery.platformBrightnessOf(context);
+    final bool isDark = _themeStyle == ThemeStyle.system 
+        ? systemBrightness == Brightness.dark 
+        : themeMode == ThemeMode.dark;
+
+    switch (_themeStyle) {
+      case ThemeStyle.light:
+        return AppTheme.lightTheme();
+      case ThemeStyle.dark:
+        return AppTheme.darkTheme();
+      case ThemeStyle.amoled:
+        return AppTheme.amoledTheme();
+      case ThemeStyle.midnight:
+        return AppTheme.midnightTheme();
+      case ThemeStyle.deepBlue:
+        return AppTheme.deepBlueTheme();
+      case ThemeStyle.emerald:
+        return AppTheme.emeraldTheme();
+      case ThemeStyle.system:
+        return isDark ? AppTheme.darkTheme() : AppTheme.lightTheme();
+    }
+  }
+
   Future<void> _loadTheme() async {
-    final uiModeNight = MmkvManager.decodeSettings('ui_mode_night', defaultValue: 'auto');
-    _themeMode = _getThemeModeFromString(uiModeNight ?? 'auto');
+    final styleStr = MmkvManager.decodeSettings('ui_theme_style', defaultValue: 'system');
+    _themeStyle = _getThemeStyleFromString(styleStr ?? 'system');
     notifyListeners();
   }
 
-  ThemeMode _getThemeModeFromString(String mode) {
-    switch (mode) {
-      case 'dark':
-        return ThemeMode.dark;
-      case 'light':
-        return ThemeMode.light;
-      case 'auto':
-      default:
-        return ThemeMode.system;
-    }
+  ThemeStyle _getThemeStyleFromString(String style) {
+    return ThemeStyle.values.firstWhere(
+      (e) => e.name == style,
+      orElse: () => ThemeStyle.system,
+    );
   }
 
-  String _getStringFromThemeMode(ThemeMode mode) {
-    switch (mode) {
-      case ThemeMode.dark:
-        return 'dark';
-      case ThemeMode.light:
-        return 'light';
-      case ThemeMode.system:
-      default:
-        return 'auto';
-    }
+  Future<void> setThemeStyle(ThemeStyle style) async {
+    _themeStyle = style;
+    MmkvManager.encodeSettings('ui_theme_style', style.name);
+    notifyListeners();
   }
 
+  // Deprecated: used for backward compatibility if needed
   Future<void> setThemeMode(ThemeMode mode) async {
-    _themeMode = mode;
-    MmkvManager.encodeSettings('ui_mode_night', _getStringFromThemeMode(mode));
-    notifyListeners();
-  }
-
-  Future<void> setThemeModeFromString(String mode) async {
-    await setThemeMode(_getThemeModeFromString(mode));
+    switch (mode) {
+      case ThemeMode.light:
+        await setThemeStyle(ThemeStyle.light);
+        break;
+      case ThemeMode.dark:
+        await setThemeStyle(ThemeStyle.dark);
+        break;
+      case ThemeMode.system:
+        await setThemeStyle(ThemeStyle.system);
+        break;
+    }
   }
 
   Future<void> toggleTheme() async {
-    if (_themeMode == ThemeMode.dark) {
-      await setThemeMode(ThemeMode.light);
-    } else if (_themeMode == ThemeMode.light) {
-      await setThemeMode(ThemeMode.system);
+    if (_themeStyle == ThemeStyle.light) {
+      await setThemeStyle(ThemeStyle.dark);
+    } else if (_themeStyle == ThemeStyle.dark) {
+      await setThemeStyle(ThemeStyle.amoled);
     } else {
-      await setThemeMode(ThemeMode.dark);
+      await setThemeStyle(ThemeStyle.light);
     }
   }
 }

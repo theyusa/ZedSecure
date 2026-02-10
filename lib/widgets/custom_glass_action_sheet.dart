@@ -10,6 +10,7 @@ class CustomGlassActionSheetItem {
   final VoidCallback? onTap;
   final bool isDestructive;
   final bool isDefault;
+  final bool isHeader;
   final TextStyle? textStyle;
 
   const CustomGlassActionSheetItem({
@@ -19,6 +20,7 @@ class CustomGlassActionSheetItem {
     this.onTap,
     this.isDestructive = false,
     this.isDefault = false,
+    this.isHeader = false,
     this.textStyle,
   });
 }
@@ -169,6 +171,21 @@ class CustomGlassActionSheetState extends State<CustomGlassActionSheet>
                             itemBuilder: (context, index) {
                               final action = widget.actions[index];
                               final isSelected = action.isDefault;
+
+                              if (action.isHeader) {
+                                return Container(
+                                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                                  child: Text(
+                                    action.title.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.systemGray.withOpacity(0.8),
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                );
+                              }
 
                               return Material(
                                 color: Colors.transparent,

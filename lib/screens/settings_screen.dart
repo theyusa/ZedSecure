@@ -142,15 +142,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSection('Appearance', [
               Consumer<ThemeService>(
                 builder: (context, themeService, child) {
-                  final currentMode = themeService.themeMode == ThemeMode.dark 
-                      ? 'Dark' 
-                      : themeService.themeMode == ThemeMode.light 
-                          ? 'Light' 
-                          : 'Auto';
+                  final String currentThemeName;
+                  switch (themeService.themeStyle) {
+                    case ThemeStyle.system: currentThemeName = 'Auto (System)'; break;
+                    case ThemeStyle.light: currentThemeName = 'Classic Light'; break;
+                    case ThemeStyle.dark: currentThemeName = 'Modern Dark'; break;
+                    case ThemeStyle.amoled: currentThemeName = 'Pure AMOLED'; break;
+                    case ThemeStyle.midnight: currentThemeName = 'Midnight Purple'; break;
+                    case ThemeStyle.deepBlue: currentThemeName = 'Deep Ocean Blue'; break;
+                    case ThemeStyle.emerald: currentThemeName = 'Emerald Forest'; break;
+                  }
                   
                   return _buildNavigationTile(
                     'Theme',
-                    currentMode,
+                    currentThemeName,
                     CupertinoIcons.paintbrush,
                     Colors.indigo,
                     () => _showThemeSelector(themeService),
@@ -354,35 +359,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
     
     await CustomGlassActionSheet.show(
       context: context,
-      title: 'Select Theme',
-      cancelText: 'Cancel',
+      title: 'Select Appearance',
+      cancelText: 'Done',
       actions: [
+        const CustomGlassActionSheetItem(title: 'System', isHeader: true),
         CustomGlassActionSheetItem(
-          leading: Icon(CupertinoIcons.device_phone_portrait, size: 20, color: AppTheme.primaryBlue),
-          title: 'Auto (System)',
-          trailing: themeService.themeMode == ThemeMode.system
-              ? Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue)
+          leading: Icon(CupertinoIcons.device_phone_portrait, size: 20, color: AppTheme.systemGray),
+          title: 'System Default',
+          trailing: themeService.themeStyle == ThemeStyle.system
+              ? Icon(CupertinoIcons.checkmark_alt, size: 20, color: AppTheme.primaryBlue)
               : null,
-          isDefault: themeService.themeMode == ThemeMode.system,
-          onTap: () => themeService.setThemeMode(ThemeMode.system),
+          isDefault: themeService.themeStyle == ThemeStyle.system,
+          onTap: () => themeService.setThemeStyle(ThemeStyle.system),
         ),
+        
+        const CustomGlassActionSheetItem(title: 'Light', isHeader: true),
         CustomGlassActionSheetItem(
-          leading: Icon(CupertinoIcons.sun_max_fill, size: 20, color: AppTheme.primaryBlue),
-          title: 'Light',
-          trailing: themeService.themeMode == ThemeMode.light
-              ? Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue)
+          leading: Icon(CupertinoIcons.sun_max_fill, size: 20, color: Colors.orange),
+          title: 'Classic Light',
+          trailing: themeService.themeStyle == ThemeStyle.light
+              ? Icon(CupertinoIcons.checkmark_alt, size: 20, color: AppTheme.primaryBlue)
               : null,
-          isDefault: themeService.themeMode == ThemeMode.light,
-          onTap: () => themeService.setThemeMode(ThemeMode.light),
+          isDefault: themeService.themeStyle == ThemeStyle.light,
+          onTap: () => themeService.setThemeStyle(ThemeStyle.light),
         ),
+
+        const CustomGlassActionSheetItem(title: 'Dark Themes', isHeader: true),
         CustomGlassActionSheetItem(
           leading: Icon(CupertinoIcons.moon_fill, size: 20, color: AppTheme.primaryBlue),
-          title: 'Dark',
-          trailing: themeService.themeMode == ThemeMode.dark
-              ? Icon(CupertinoIcons.checkmark, size: 20, color: AppTheme.primaryBlue)
+          title: 'Modern Dark',
+          trailing: themeService.themeStyle == ThemeStyle.dark
+              ? Icon(CupertinoIcons.checkmark_alt, size: 20, color: AppTheme.primaryBlue)
               : null,
-          isDefault: themeService.themeMode == ThemeMode.dark,
-          onTap: () => themeService.setThemeMode(ThemeMode.dark),
+          isDefault: themeService.themeStyle == ThemeStyle.dark,
+          onTap: () => themeService.setThemeStyle(ThemeStyle.dark),
+        ),
+        CustomGlassActionSheetItem(
+          leading: const Icon(CupertinoIcons.moon_stars_fill, size: 20, color: Colors.black),
+          title: 'Pure AMOLED',
+          trailing: themeService.themeStyle == ThemeStyle.amoled
+              ? Icon(CupertinoIcons.checkmark_alt, size: 20, color: AppTheme.primaryBlue)
+              : null,
+          isDefault: themeService.themeStyle == ThemeStyle.amoled,
+          onTap: () => themeService.setThemeStyle(ThemeStyle.amoled),
+        ),
+        CustomGlassActionSheetItem(
+          leading: const Icon(CupertinoIcons.sparkles, size: 20, color: AppTheme.primaryPurple),
+          title: 'Midnight Purple',
+          trailing: themeService.themeStyle == ThemeStyle.midnight
+              ? Icon(CupertinoIcons.checkmark_alt, size: 20, color: AppTheme.primaryBlue)
+              : null,
+          isDefault: themeService.themeStyle == ThemeStyle.midnight,
+          onTap: () => themeService.setThemeStyle(ThemeStyle.midnight),
+        ),
+        CustomGlassActionSheetItem(
+          leading: const Icon(CupertinoIcons.drop_fill, size: 20, color: Colors.blue),
+          title: 'Deep Ocean Blue',
+          trailing: themeService.themeStyle == ThemeStyle.deepBlue
+              ? Icon(CupertinoIcons.checkmark_alt, size: 20, color: AppTheme.primaryBlue)
+              : null,
+          isDefault: themeService.themeStyle == ThemeStyle.deepBlue,
+          onTap: () => themeService.setThemeStyle(ThemeStyle.deepBlue),
+        ),
+        CustomGlassActionSheetItem(
+          leading: const Icon(CupertinoIcons.leaf_fill, size: 20, color: Colors.green),
+          title: 'Emerald Forest',
+          trailing: themeService.themeStyle == ThemeStyle.emerald
+              ? Icon(CupertinoIcons.checkmark_alt, size: 20, color: AppTheme.primaryBlue)
+              : null,
+          isDefault: themeService.themeStyle == ThemeStyle.emerald,
+          onTap: () => themeService.setThemeStyle(ThemeStyle.emerald),
         ),
       ],
     );

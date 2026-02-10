@@ -14,48 +14,74 @@ class AppTheme {
   static const Color systemGray5 = Color(0xFFE5E5EA);
   static const Color systemGray6 = Color(0xFFF2F2F7);
 
-  static ThemeData lightTheme() {
+  // Additional Accent Colors
+  static const Color primaryIndigo = Color(0xFF5856D6);
+  static const Color primaryPurple = Color(0xFFAF52DE);
+  static const Color primaryPink = Color(0xFFFF2D55);
+  static const Color primaryOrange = Color(0xFFFF9500);
+  static const Color primaryGreen = Color(0xFF28CD41);
+  static const Color primaryTeal = Color(0xFF5AC8FA);
+
+  static ThemeData lightTheme({Color accentColor = primaryBlue}) {
     return ThemeData(
       brightness: Brightness.light,
-      primaryColor: primaryBlue,
+      primaryColor: accentColor,
       scaffoldBackgroundColor: systemGray6,
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: primaryBlue),
-        titleTextStyle: TextStyle(
+        iconTheme: IconThemeData(color: accentColor),
+        titleTextStyle: const TextStyle(
           color: Colors.black,
           fontSize: 17,
           fontWeight: FontWeight.w600,
         ),
       ),
-      colorScheme: const ColorScheme.light(
-        primary: primaryBlue,
-        secondary: connectedGreen,
+      colorScheme: ColorScheme.light(
+        primary: accentColor,
+        secondary: accentColor,
       ),
     );
   }
 
-  static ThemeData darkTheme() {
+  static ThemeData darkTheme({Color accentColor = primaryBlue, Color? backgroundColor}) {
+    final bg = backgroundColor ?? const Color(0xFF121212);
     return ThemeData(
       brightness: Brightness.dark,
-      primaryColor: primaryBlue,
-      scaffoldBackgroundColor: Colors.black,
-      appBarTheme: const AppBarTheme(
+      primaryColor: accentColor,
+      scaffoldBackgroundColor: bg,
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: primaryBlue),
-        titleTextStyle: TextStyle(
+        iconTheme: IconThemeData(color: accentColor),
+        titleTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 17,
           fontWeight: FontWeight.w600,
         ),
       ),
-      colorScheme: const ColorScheme.dark(
-        primary: primaryBlue,
-        secondary: connectedGreen,
+      colorScheme: ColorScheme.dark(
+        primary: accentColor,
+        secondary: accentColor,
+        surface: bg == Colors.black ? const Color(0xFF1C1C1E) : bg.withOpacity(0.8),
       ),
     );
+  }
+
+  static ThemeData amoledTheme({Color accentColor = primaryBlue}) {
+    return darkTheme(accentColor: accentColor, backgroundColor: Colors.black);
+  }
+
+  static ThemeData midnightTheme() {
+    return darkTheme(accentColor: primaryPurple, backgroundColor: const Color(0xFF120E16));
+  }
+
+  static ThemeData deepBlueTheme() {
+    return darkTheme(accentColor: primaryBlue, backgroundColor: const Color(0xFF0F172A));
+  }
+
+  static ThemeData emeraldTheme() {
+    return darkTheme(accentColor: primaryGreen, backgroundColor: const Color(0xFF064E3B));
   }
 
   static BoxDecoration glassDecoration({

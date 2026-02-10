@@ -63,12 +63,18 @@ android {
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
+            
+            // Keystore yoksa hata vermemesi ve yüklenebilir olması için 
+            // varsayılan debug imzasını kullanıyoruz.
             val releaseConfig = signingConfigs.findByName("release")
             if (releaseConfig != null) {
                 signingConfig = releaseConfig
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
         getByName("debug") {
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }

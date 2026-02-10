@@ -43,20 +43,19 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer<ThemeService>(
         builder: (context, themeService, child) {
-          final isDark = themeService.themeMode == ThemeMode.dark || 
-                        (themeService.themeMode == ThemeMode.system && 
-                         MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+          final themeData = themeService.getThemeData(context);
+          final isDark = themeData.brightness == Brightness.dark;
           
           return MaterialApp(
             title: 'ZedSecure VPN',
             themeMode: themeService.themeMode,
-            darkTheme: AppTheme.darkTheme(),
             theme: AppTheme.lightTheme(),
+            darkTheme: AppTheme.darkTheme(),
             home: const MainNavigation(),
             debugShowCheckedModeBanner: false,
             builder: (context, child) {
               return AnimatedTheme(
-                data: isDark ? AppTheme.darkTheme() : AppTheme.lightTheme(),
+                data: themeData,
                 duration: const Duration(milliseconds: 400),
                 child: AnnotatedRegion<SystemUiOverlayStyle>(
                   value: SystemUiOverlayStyle(

@@ -1,4 +1,4 @@
-name: Build & Release APK (Optimized - ARM64)
+name: Build & Release APK (ARM64 - No Keystore)
 
 on:
   push:
@@ -48,18 +48,15 @@ jobs:
       - name: Get Version Info
         id: version_info
         run: |
-          # 1. Determine Tag
           if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ github.event.inputs.version_tag }}" != "" ]; then
             TAG="${{ github.event.inputs.version_tag }}"
           elif [ "${{ github.ref_type }}" == "tag" ]; then
             TAG="${{ github.ref_name }}"
           else
-            # Fallback: Get version from pubspec.yaml
             PUBSPEC_VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
             TAG="v${PUBSPEC_VERSION}-pre"
           fi
           
-          # 2. Determine Release Name
           if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ github.event.inputs.release_name }}" != "" ]; then
             NAME="${{ github.event.inputs.release_name }}"
           else
@@ -68,24 +65,21 @@ jobs:
           
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "name=$NAME" >> $GITHUB_OUTPUT
-          echo "Using Tag: $TAG"
-          echo "Using Name: $NAME"
 
-      - name: Build Release APK (Optimized ARM64)
+      - name: Build Release APK (ARM64 Only)
         run: |
-          # Step 1 recommendation: Using --release for optimization and smaller size
+          # Sadece ARM64-v8a mimarisi için optimize build
           flutter build apk --release --target-platform android-arm64 --obfuscate --split-debug-info=build/app/outputs/symbols
       
       - name: Prepare Release Files
         run: |
           mkdir -p release-apks
-          # Find the built apk (usually app-release.apk when built with --release)
           cp build/app/outputs/flutter-apk/app-release.apk release-apks/ZedSecure-${{ steps.version_info.outputs.tag }}-arm64-v8a.apk
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ZedSecure-arm64-v8a
+          name: ZedSecure-ARM64
           path: release-apks/ZedSecure-${{ steps.version_info.outputs.tag }}-arm64-v8a.apk
       
       - name: Create GitHub Release
@@ -102,7 +96,7 @@ jobs:
             Optimized ARM64 build.
             
             ### 🛠 Build Info
-            - **Mode**: Release (Optimized)
+            - **Mode**: Release (Signed with Debug Key)
             - **Architecture**: ARM64-v8a Only
             - **Version**: ${{ steps.version_info.outputs.tag }}
             
