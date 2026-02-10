@@ -28,7 +28,8 @@ jobs:
         with:
           flutter-version: '3.38.4'
           channel: 'stable'
-          cache: false
+          cache: true
+          cache-key: flutter-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
       
       - name: Flutter Doctor
         run: flutter doctor -v
