@@ -395,7 +395,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onTap: () => themeService.setThemeStyle(ThemeStyle.dark),
         ),
         CustomGlassActionSheetItem(
-          leading: const Icon(CupertinoIcons.moon_stars_fill, size: 20, color: Colors.black),
+          leading: const Icon(CupertinoIcons.moon_fill, size: 20, color: Colors.black),
           title: 'Pure AMOLED',
           trailing: themeService.themeStyle == ThemeStyle.amoled
               ? Icon(CupertinoIcons.checkmark_alt, size: 20, color: AppTheme.primaryBlue)
@@ -422,7 +422,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onTap: () => themeService.setThemeStyle(ThemeStyle.deepBlue),
         ),
         CustomGlassActionSheetItem(
-          leading: const Icon(CupertinoIcons.leaf_fill, size: 20, color: Colors.green),
+          leading: const Icon(CupertinoIcons.tree, size: 20, color: Colors.green),
           title: 'Emerald Forest',
           trailing: themeService.themeStyle == ThemeStyle.emerald
               ? Icon(CupertinoIcons.checkmark_alt, size: 20, color: AppTheme.primaryBlue)
