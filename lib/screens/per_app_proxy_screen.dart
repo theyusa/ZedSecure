@@ -99,15 +99,16 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : const Color(0xFFF2F2F7),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(CupertinoIcons.back, color: AppTheme.primaryBlue),
+          icon: Icon(CupertinoIcons.back, color: theme.primaryColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -121,7 +122,7 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
         actions: [
           TextButton(
             onPressed: _saveSelection,
-            child: Text('Save', style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.w600)),
+            child: Text('Save', style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -130,7 +131,7 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+              color: Colors.transparent,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -149,7 +150,7 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              color: isDark ? Colors.black : const Color(0xFFF2F2F7),
+              color: Colors.transparent,
               child: Row(
                 children: [
                   Expanded(
@@ -160,24 +161,24 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
                   ),
                   GestureDetector(
                     onTap: () => setState(() => _selectedApps = _apps.map((app) => app['packageName'] as String).toList()),
-                    child: Text('All', style: TextStyle(fontSize: 13, color: AppTheme.primaryBlue, fontWeight: FontWeight.w600)),
+                    child: Text('All', style: TextStyle(fontSize: 13, color: theme.primaryColor, fontWeight: FontWeight.w600)),
                   ),
                   const SizedBox(width: 16),
                   GestureDetector(
                     onTap: () => setState(() => _selectedApps.clear()),
-                    child: Text('None', style: TextStyle(fontSize: 13, color: AppTheme.primaryBlue, fontWeight: FontWeight.w600)),
+                    child: Text('None', style: TextStyle(fontSize: 13, color: theme.primaryColor, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
             ),
-            Expanded(child: _buildContent(isDark)),
+            Expanded(child: _buildContent(isDark, context)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildContent(bool isDark) {
+  Widget _buildContent(bool isDark, BuildContext context) {
     if (_isLoading) {
       return const Center(
         child: Column(
@@ -252,7 +253,7 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
               ),
             ),
           ),
-          ...userApps.map((app) => _buildAppTile(app, isDark)),
+          ...userApps.map((app) => _buildAppTile(app, isDark, context)),
         ],
         if (systemApps.isNotEmpty) ...[
           Padding(
@@ -266,29 +267,27 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
               ),
             ),
           ),
-          ...systemApps.map((app) => _buildAppTile(app, isDark)),
+          ...systemApps.map((app) => _buildAppTile(app, isDark, context)),
         ],
       ],
     );
   }
   
-  Widget _buildAppTile(Map<String, dynamic> app, bool isDark) {
+  Widget _buildAppTile(Map<String, dynamic> app, bool isDark, BuildContext context) {
     final packageName = app['packageName'] as String;
     final appName = app['name'] as String;
     final isSystemApp = app['isSystemApp'] as bool;
     final isSelected = _selectedApps.contains(packageName);
+    final theme = Theme.of(context);
     
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-      ),
+      decoration: AppTheme.iosCardDecoration(isDark: isDark, context: context),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: isSystemApp 
             ? Icon(CupertinoIcons.gear_alt, size: 20, color: AppTheme.systemGray)
-            : Icon(CupertinoIcons.app, size: 20, color: AppTheme.primaryBlue),
+            : Icon(CupertinoIcons.app, size: 20, color: theme.primaryColor),
         title: Text(
           appName,
           style: TextStyle(

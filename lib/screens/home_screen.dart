@@ -66,7 +66,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Consumer<V2RayService>(
       builder: (context, v2rayService, child) {
@@ -76,21 +77,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         final displayConfig = activeConfig ?? _selectedConfig;
 
         return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: isDark
-                  ? [const Color(0xFF1C1C1E), Colors.black]
-                  : [const Color(0xFFF2F2F7), Colors.white],
-            ),
-          ),
+          color: theme.scaffoldBackgroundColor,
           child: SafeArea(
             bottom: false,
             child: Column(
               children: [
                 if (isConnected && status != null)
-                  _buildDynamicIsland(v2rayService, status, isDark),
+                  _buildDynamicIsland(v2rayService, status, isDark, context),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   child: Row(
@@ -104,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: AppTheme.primaryBlue.withOpacity(0.3),
+                              color: theme.primaryColor.withOpacity(0.3),
                               width: 1,
                             ),
                           ),
@@ -114,14 +107,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               Icon(
                                 CupertinoIcons.doc_text,
                                 size: 16,
-                                color: AppTheme.primaryBlue,
+                                color: theme.primaryColor,
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 'Logs',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: AppTheme.primaryBlue,
+                                  color: theme.primaryColor,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -138,15 +131,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: Column(
                       children: [
                         const SizedBox(height: 40),
-                        _buildConnectionWidget(isConnected, v2rayService, isDark),
+                        _buildConnectionWidget(isConnected, v2rayService, isDark, context),
                         const SizedBox(height: 40),
                         if (displayConfig != null)
-                          _buildServerCard(displayConfig, v2rayService, isConnected, isDark)
+                          _buildServerCard(displayConfig, v2rayService, isConnected, isDark, context)
                         else
-                          _buildNoServerCard(isDark),
+                          _buildNoServerCard(isDark, context),
                         const SizedBox(height: 20),
                         if (isConnected && status != null) ...[
-                          _buildConnectionInfoGrid(v2rayService, isDark),
+                          _buildConnectionInfoGrid(v2rayService, isDark, context),
                         ],
                       ],
                     ),
@@ -160,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildDynamicIsland(V2RayService service, dynamic status, bool isDark) {
+  Widget _buildDynamicIsland(V2RayService service, dynamic status, bool isDark, BuildContext context) {
     final duration = status.duration ?? '00:00:00';
     final uploadSpeed = AppTheme.formatSpeed(status.uploadSpeed);
     final downloadSpeed = AppTheme.formatSpeed(status.downloadSpeed);
@@ -259,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: AppTheme.primaryBlue.withOpacity(0.12),
+                  color: Theme.of(context).primaryColor.withOpacity(0.12),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -267,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Icon(
                       CupertinoIcons.arrow_down,
                       size: 10,
-                      color: AppTheme.primaryBlue,
+                      color: Theme.of(context).primaryColor,
                     ),
                     const SizedBox(width: 3),
                     Text(
@@ -275,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryBlue,
+                        color: Theme.of(context).primaryColor,
                       ),
                     ),
                   ],
@@ -304,7 +297,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildConnectionWidget(bool isConnected, V2RayService service, bool isDark) {
+  Widget _buildConnectionWidget(bool isConnected, V2RayService service, bool isDark, BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: _isConnecting ? null : () => _handleConnectionToggle(service),
       child: SizedBox(
@@ -323,6 +317,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     painter: _RingPainter(
                       isConnected: isConnected,
                       progress: isConnected ? 1.0 : 0.3,
+                      primaryColor: theme.primaryColor,
                     ),
                   ),
                 );
@@ -336,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: (isConnected ? AppTheme.connectedGreen : AppTheme.primaryBlue).withOpacity(0.3),
+                    color: (isConnected ? AppTheme.connectedGreen : theme.primaryColor).withOpacity(0.3),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
@@ -351,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           Icon(
                             isConnected ? CupertinoIcons.checkmark_shield_fill : CupertinoIcons.shield_fill,
                             size: 44,
-                            color: isConnected ? AppTheme.connectedGreen : AppTheme.primaryBlue,
+                            color: isConnected ? AppTheme.connectedGreen : theme.primaryColor,
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -359,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: isConnected ? AppTheme.connectedGreen : AppTheme.primaryBlue,
+                              color: isConnected ? AppTheme.connectedGreen : theme.primaryColor,
                             ),
                           ),
                         ],
@@ -372,21 +367,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildNoServerCard(bool isDark) {
+  Widget _buildNoServerCard(bool isDark, BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
+      decoration: AppTheme.iosCardDecoration(isDark: isDark, context: context),
       child: Column(
         children: [
           Icon(CupertinoIcons.globe, size: 48, color: AppTheme.systemGray),
@@ -444,11 +429,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildServerCard(V2RayConfig config, V2RayService service, bool isConnected, bool isDark) {
+  Widget _buildServerCard(V2RayConfig config, V2RayService service, bool isConnected, bool isDark, BuildContext context) {
     final countryCode = service.detectedCountryCode ?? 'XX';
     final detectedIP = service.detectedIP;
     final detectedCity = service.detectedCity;
     final detectedRegion = service.detectedRegion;
+    final theme = Theme.of(context);
     
     String locationText = 'Unknown Location';
     if (detectedCity != null && detectedRegion != null) {
@@ -464,18 +450,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-            border: isConnected ? Border.all(color: AppTheme.connectedGreen.withOpacity(0.5), width: 1.5) : null,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
+          decoration: AppTheme.iosCardDecoration(isDark: isDark, context: context),
           child: Row(
             children: [
               _buildFlagWidget(countryCode),
@@ -522,11 +497,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
-                            color: AppTheme.primaryBlue.withOpacity(0.12),
+                            color: theme.primaryColor.withOpacity(0.12),
                           ),
                           child: Text(
                             config.protocolDisplay,
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.primaryBlue),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.primaryColor),
                           ),
                         ),
                         if (!isConnected) ...[
@@ -555,26 +530,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildConnectionInfoGrid(V2RayService service, bool isDark) {
+  Widget _buildConnectionInfoGrid(V2RayService service, bool isDark, BuildContext context) {
     final status = service.currentStatus;
     final detectedCountryCode = service.detectedCountryCode ?? 'XX';
     final detectedIP = service.detectedIP;
+    final theme = Theme.of(context);
     
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+          decoration: AppTheme.iosCardDecoration(isDark: isDark, context: context),
           child: Column(
             children: [
               Row(
@@ -599,7 +565,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.primaryBlue,
+                              color: theme.primaryColor,
                             ),
                           ),
                         ),
@@ -715,13 +681,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             height: 48,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppTheme.primaryBlue.withOpacity(0.15),
+                              color: theme.primaryColor.withOpacity(0.15),
                             ),
                             child: Center(
                               child: Icon(
                                 CupertinoIcons.arrow_down,
                                 size: 22,
-                                color: AppTheme.primaryBlue,
+                                color: theme.primaryColor,
                               ),
                             ),
                           ),
@@ -1279,8 +1245,9 @@ class _PingRefreshButtonState extends State<_PingRefreshButton> {
 class _RingPainter extends CustomPainter {
   final bool isConnected;
   final double progress;
+  final Color primaryColor;
 
-  _RingPainter({required this.isConnected, required this.progress});
+  _RingPainter({required this.isConnected, required this.progress, required this.primaryColor});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1288,7 +1255,7 @@ class _RingPainter extends CustomPainter {
     final radius = size.width / 2 - 8;
     
     final bgPaint = Paint()
-      ..color = (isConnected ? AppTheme.connectedGreen : AppTheme.primaryBlue).withOpacity(0.15)
+      ..color = (isConnected ? AppTheme.connectedGreen : primaryColor).withOpacity(0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 6
       ..strokeCap = StrokeCap.round;
@@ -1299,7 +1266,7 @@ class _RingPainter extends CustomPainter {
       ..shader = SweepGradient(
         colors: isConnected
             ? [AppTheme.connectedGreen.withOpacity(0.2), AppTheme.connectedGreen]
-            : [AppTheme.primaryBlue.withOpacity(0.2), AppTheme.primaryBlue],
+            : [primaryColor.withOpacity(0.2), primaryColor],
       ).createShader(Rect.fromCircle(center: center, radius: radius))
       ..style = PaintingStyle.stroke
       ..strokeWidth = 6
@@ -1316,6 +1283,6 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _RingPainter oldDelegate) {
-    return oldDelegate.isConnected != isConnected || oldDelegate.progress != progress;
+    return oldDelegate.isConnected != isConnected || oldDelegate.progress != progress || oldDelegate.primaryColor != primaryColor;
   }
 }

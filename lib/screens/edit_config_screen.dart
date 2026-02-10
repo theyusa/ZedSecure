@@ -251,10 +251,11 @@ class _EditConfigScreenState extends State<EditConfigScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -272,7 +273,7 @@ class _EditConfigScreenState extends State<EditConfigScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(CupertinoIcons.doc_text, color: AppTheme.primaryBlue),
+            icon: Icon(CupertinoIcons.doc_text, color: theme.primaryColor),
             onPressed: () {
               Navigator.push(
                 context,
@@ -296,7 +297,7 @@ class _EditConfigScreenState extends State<EditConfigScreen> {
               child: Text(
                 'Save',
                 style: TextStyle(
-                  color: AppTheme.primaryBlue,
+                  color: theme.primaryColor,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -307,11 +308,341 @@ class _EditConfigScreenState extends State<EditConfigScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _buildFormEditor(isDark),
+          _buildFormEditor(isDark, context),
         ],
       ),
     );
   }
+
+  Widget _buildFormEditor(bool isDark, BuildContext context) {
+    final protocol = widget.config.configType.toLowerCase();
+    
+    return Column(
+      children: [
+        _buildSection('BASIC INFORMATION', [
+          _buildTextField('Remark', _remarkController, CupertinoIcons.tag, isDark, context),
+          _buildTextField('Address', _addressController, CupertinoIcons.globe, isDark, context),
+          _buildTextField('Port', _portController, CupertinoIcons.number, isDark, context, keyboardType: TextInputType.number),
+        ], isDark, context),
+        const SizedBox(height: 20),
+        _buildProtocolSection(protocol, isDark, context),
+        if (protocol != 'wireguard' && protocol != 'hysteria2' && protocol != 'hysteria') ...[
+          const SizedBox(height: 20),
+          _buildTransportSection(isDark, context),
+          const SizedBox(height: 20),
+          _buildTlsSection(isDark, context),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildProtocolSection(String protocol, bool isDark, BuildContext context) {
+    switch (protocol) {
+      case 'vmess':
+        return _buildVMessSection(isDark, context);
+      case 'vless':
+        return _buildVLESSSection(isDark, context);
+      case 'trojan':
+        return _buildTrojanSection(isDark, context);
+      case 'shadowsocks':
+        return _buildShadowsocksSection(isDark, context);
+      case 'socks':
+      case 'http':
+        return _buildSocksHttpSection(isDark, context);
+      case 'hysteria2':
+      case 'hysteria':
+        return _buildHysteria2Section(isDark, context);
+      case 'wireguard':
+        return _buildWireguardSection(isDark, context);
+      default:
+        return _buildGenericSection(isDark, context);
+    }
+  }
+
+  Widget _buildVMessSection(bool isDark, BuildContext context) {
+    return _buildSection('VMESS SETTINGS', [
+      _buildProtocolBadge('VMess', isDark, context),
+      _buildTextField('UUID', _idController, CupertinoIcons.lock, isDark, context),
+      _buildDropdown('Security', const ['chacha20-poly1305', 'aes-128-gcm', 'auto', 'none', 'zero'], _selectedMethod, (v) => setState(() => _selectedMethod = v!), isDark, context),
+    ], isDark, context);
+  }
+
+  Widget _buildVLESSSection(bool isDark, BuildContext context) {
+    return _buildSection('VLESS SETTINGS', [
+      _buildProtocolBadge('VLESS', isDark, context),
+      _buildTextField('UUID', _idController, CupertinoIcons.lock, isDark, context),
+      _buildTextField('Encryption', _encryptionController, CupertinoIcons.lock_shield, isDark, context, hint: 'none'),
+      _buildDropdown('Flow', const ['', 'xtls-rprx-vision', 'xtls-rprx-vision-udp443'], _selectedFlow, (v) => setState(() => _selectedFlow = v!), isDark, context),
+    ], isDark, context);
+  }
+
+  Widget _buildTrojanSection(bool isDark, BuildContext context) {
+    return _buildSection('TROJAN SETTINGS', [
+      _buildProtocolBadge('Trojan', isDark, context),
+      _buildTextField('Password', _idController, CupertinoIcons.lock, isDark, context),
+    ], isDark, context);
+  }
+
+  Widget _buildShadowsocksSection(bool isDark, BuildContext context) {
+    return _buildSection('SHADOWSOCKS SETTINGS', [
+      _buildProtocolBadge('Shadowsocks', isDark, context),
+      _buildDropdown('Method', const ['aes-256-gcm', 'aes-128-gcm', 'chacha20-poly1305', 'chacha20-ietf-poly1305', 'xchacha20-poly1305', 'xchacha20-ietf-poly1305', 'none', 'plain', '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm', '2022-blake3-chacha20-poly1305'], _selectedMethod, (v) => setState(() => _selectedMethod = v!), isDark, context),
+      _buildTextField('Password', _idController, CupertinoIcons.lock, isDark, context),
+    ], isDark, context);
+  }
+
+  Widget _buildSocksHttpSection(bool isDark, BuildContext context) {
+    return _buildSection('${widget.config.configType.toUpperCase()} SETTINGS', [
+      _buildProtocolBadge(widget.config.configType.toUpperCase(), isDark, context),
+      _buildTextField('Username', _usernameController, CupertinoIcons.person, isDark, context),
+      _buildTextField('Password', _idController, CupertinoIcons.lock, isDark, context),
+    ], isDark, context);
+  }
+
+  Widget _buildGenericSection(bool isDark, BuildContext context) {
+    return _buildSection('PROTOCOL SETTINGS', [
+      _buildProtocolBadge(widget.config.protocolDisplay, isDark, context),
+      _buildTextField('ID / Password', _idController, CupertinoIcons.lock, isDark, context),
+    ], isDark, context);
+  }
+
+  Widget _buildHysteria2Section(bool isDark, BuildContext context) {
+    return Column(
+      children: [
+        _buildSection('HYSTERIA2 SETTINGS', [
+          _buildProtocolBadge('Hysteria2', isDark, context),
+          _buildTextField('Password', _idController, CupertinoIcons.lock, isDark, context),
+        ], isDark, context),
+        const SizedBox(height: 20),
+        _buildSection('BANDWIDTH', [
+          _buildBandwidthFields(isDark),
+        ], isDark, context),
+        const SizedBox(height: 20),
+        _buildSection('OBFUSCATION', [
+          _buildObfuscationFields(isDark),
+        ], isDark, context),
+        const SizedBox(height: 20),
+        _buildSection('PORT HOPPING', [
+          _buildTextField('Port Hopping', _portHoppingController, CupertinoIcons.arrow_2_circlepath, isDark, context, hint: 'e.g., 1000-2000'),
+          _buildTextField('Hop Interval (s)', _portHoppingIntervalController, CupertinoIcons.timer, isDark, context, keyboardType: TextInputType.number, hint: '30'),
+        ], isDark, context),
+        const SizedBox(height: 20),
+        _buildSection('TLS SETTINGS', [
+          _buildTextField('SNI', _sniController, CupertinoIcons.globe, isDark, context, hint: 'example.com'),
+          _buildDropdown('ALPN', const ['', 'h3', 'h2', 'http/1.1'], _selectedAlpn.isEmpty ? 'h3' : _selectedAlpn, (v) => setState(() => _selectedAlpn = v!), isDark, context),
+          _buildDropdown('Fingerprint', const ['', 'chrome', 'firefox', 'safari', 'ios', 'android', 'edge', '360', 'qq', 'random', 'randomized'], _selectedFingerprint, (v) => setState(() => _selectedFingerprint = v!), isDark, context),
+          _buildDropdown('Allow Insecure', const ['false', 'true'], _selectedAllowInsecure.isEmpty ? 'false' : _selectedAllowInsecure, (v) => setState(() => _selectedAllowInsecure = v!), isDark, context),
+          _buildTextField('Pin SHA256', _pinSHA256Controller, CupertinoIcons.lock_shield, isDark, context, hint: 'Optional'),
+        ], isDark, context),
+      ],
+    );
+  }
+
+  Widget _buildWireguardSection(bool isDark, BuildContext context) {
+    return Column(
+      children: [
+        _buildSection('WIREGUARD SETTINGS', [
+          _buildProtocolBadge('WireGuard', isDark, context),
+          _buildTextField('Secret Key', _idController, CupertinoIcons.lock, isDark, context),
+          _buildTextField('Public Key', _publicKeyController, CupertinoIcons.lock_fill, isDark, context),
+          _buildTextField('Pre-Shared Key', _preSharedKeyController, CupertinoIcons.lock_shield, isDark, context, hint: 'Optional'),
+          _buildTextField('Reserved', _reservedController, CupertinoIcons.number, isDark, context, hint: '0,0,0'),
+        ], isDark, context),
+        const SizedBox(height: 20),
+        _buildSection('LOCAL SETTINGS', [
+          _buildTextField('Local Address', _localAddressController, CupertinoIcons.location, isDark, context),
+          _buildTextField('MTU', _mtuController, CupertinoIcons.number, isDark, context, keyboardType: TextInputType.number),
+        ], isDark, context),
+      ],
+    );
+  }
+
+  Widget _buildSection(String title, List<Widget> children, bool isDark, BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.systemGray,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+        Container(
+          decoration: AppTheme.iosCardDecoration(isDark: isDark, context: context),
+          child: Column(
+            children: children.asMap().entries.map((entry) {
+              final isLast = entry.key == children.length - 1;
+              return Column(
+                children: [
+                  entry.value,
+                  if (!isLast)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 60),
+                      child: Divider(height: 1, color: isDark ? Colors.white12 : Colors.black12),
+                    ),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller, IconData icon, bool isDark, BuildContext context, {TextInputType? keyboardType, String? hint, int? maxLines}) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: theme.primaryColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(child: Icon(icon, color: theme.primaryColor, size: 20)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.systemGray,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  maxLines: maxLines ?? 1,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    hintText: hint,
+                    hintStyle: TextStyle(color: AppTheme.systemGray.withOpacity(0.5)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdown(String label, List<String> items, String value, ValueChanged<String?> onChanged, bool isDark, BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: theme.primaryColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(child: Icon(CupertinoIcons.chevron_down, color: theme.primaryColor, size: 20)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.systemGray,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                DropdownButton<String>(
+                  value: items.contains(value) ? value : items.first,
+                  isExpanded: true,
+                  underline: const SizedBox(),
+                  style: TextStyle(fontSize: 16, color: isDark ? Colors.white : Colors.black),
+                  dropdownColor: theme.colorScheme.surface,
+                  items: items.map((item) => DropdownMenuItem(value: item, child: Text(item.isEmpty ? 'None' : item))).toList(),
+                  onChanged: onChanged,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProtocolBadge(String protocol, bool isDark, BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: theme.primaryColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(child: Icon(CupertinoIcons.shield_fill, color: theme.primaryColor, size: 20)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Protocol',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.systemGray,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: theme.primaryColor.withOpacity(0.1),
+                  ),
+                  child: Text(
+                    protocol,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: theme.primaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildFormEditor(bool isDark) {
     final protocol = widget.config.configType.toLowerCase();
@@ -535,7 +866,7 @@ class _EditConfigScreenState extends State<EditConfigScreen> {
     );
   }
 
-  Widget _buildTransportSection(bool isDark) {
+  Widget _buildTransportSection(bool isDark, BuildContext context) {
     final protocol = widget.config.configType.toLowerCase();
     final showTransport = protocol != 'socks' && protocol != 'http' && protocol != 'wireguard' && protocol != 'hysteria2' && protocol != 'hysteria';
     
@@ -556,6 +887,74 @@ class _EditConfigScreenState extends State<EditConfigScreen> {
           } else {
             _selectedHeaderType = 'none';
           }
+        });
+      }, isDark, context),
+      _buildHeaderTypeDropdown(isDark, context),
+      _buildTextField(_getHostLabel(), _hostController, CupertinoIcons.globe, isDark, context, hint: _getHostHint()),
+      _buildTextField(_getPathLabel(), _pathController, CupertinoIcons.arrow_right, isDark, context, hint: _getPathHint()),
+      if (_selectedNetwork == 'xhttp')
+        _buildTextField('Extra (JSON)', _extraController, CupertinoIcons.doc_text, isDark, context, hint: '{"key":"value"}', maxLines: 3),
+    ], isDark, context);
+  }
+  
+  Widget _buildHeaderTypeDropdown(bool isDark, BuildContext context) {
+    List<String> headerTypes = [];
+    String label = 'Header Type';
+    
+    if (_selectedNetwork == 'tcp') {
+      headerTypes = ['none', 'http'];
+      label = 'Header Type';
+    } else if (_selectedNetwork == 'kcp') {
+      headerTypes = ['none', 'srtp', 'utp', 'wechat-video', 'dtls', 'wireguard', 'dns'];
+      label = 'Header Type';
+    } else if (_selectedNetwork == 'grpc') {
+      headerTypes = ['gun', 'multi'];
+      label = 'Mode Type';
+    } else if (_selectedNetwork == 'xhttp') {
+      headerTypes = ['auto', 'packet-up', 'stream-up', 'stream-one'];
+      label = 'XHTTP Mode';
+    } else {
+      headerTypes = ['none'];
+      label = 'Header Type';
+    }
+    
+    if (!headerTypes.contains(_selectedHeaderType)) {
+      _selectedHeaderType = headerTypes.first;
+    }
+    
+    return _buildDropdown(label, headerTypes, _selectedHeaderType, (v) => setState(() => _selectedHeaderType = v!), isDark, context);
+  }
+
+  Widget _buildTlsSection(bool isDark, BuildContext context) {
+    final protocol = widget.config.configType.toLowerCase();
+    final showTls = protocol != 'socks' && protocol != 'http' && protocol != 'wireguard' && protocol != 'hysteria2' && protocol != 'hysteria';
+    
+    if (!showTls) return const SizedBox.shrink();
+    
+    return _buildSection('TLS / SECURITY SETTINGS', [
+      _buildDropdown('Stream Security', const ['', 'tls', 'reality'], _selectedStreamSecurity, (v) {
+        setState(() => _selectedStreamSecurity = v!);
+      }, isDark, context),
+      if (_selectedStreamSecurity.isNotEmpty) ...[
+        _buildTextField('SNI', _sniController, CupertinoIcons.globe, isDark, context, hint: 'example.com'),
+        _buildDropdown('Fingerprint', const ['', 'chrome', 'firefox', 'safari', 'ios', 'android', 'edge', '360', 'qq', 'random', 'randomized'], _selectedFingerprint, (v) => setState(() => _selectedFingerprint = v!), isDark, context),
+      ],
+      if (_selectedStreamSecurity == 'tls') ...[
+        _buildDropdown('ALPN', const ['', 'h3', 'h2', 'http/1.1', 'h3,h2,http/1.1', 'h3,h2', 'h2,http/1.1'], _selectedAlpn, (v) => setState(() => _selectedAlpn = v!), isDark, context),
+        _buildDropdown('Allow Insecure', const ['false', 'true'], _selectedAllowInsecure.isEmpty ? 'false' : _selectedAllowInsecure, (v) => setState(() => _selectedAllowInsecure = v!), isDark, context),
+        _buildTextField('ECH Config List', _echConfigListController, CupertinoIcons.lock_shield, isDark, context, hint: 'Optional'),
+        _buildDropdown('ECH Force Query', const ['', 'none', 'half', 'full'], _selectedEchForceQuery, (v) => setState(() => _selectedEchForceQuery = v!), isDark, context),
+        _buildTextField('Pinned CA256', _pinnedCA256Controller, CupertinoIcons.lock_shield, isDark, context, hint: 'Optional'),
+      ],
+      if (_selectedStreamSecurity == 'reality') ...[
+        _buildTextField('Public Key', _realityPublicKeyController, CupertinoIcons.lock_fill, isDark, context, hint: 'Required for REALITY'),
+        _buildTextField('Short ID', _shortIdController, CupertinoIcons.number, isDark, context, hint: 'Optional'),
+        _buildTextField('Spider X', _spiderXController, CupertinoIcons.arrow_branch, isDark, context, hint: 'Optional'),
+        _buildTextField('MLDSA65 Verify', _mldsa65VerifyController, CupertinoIcons.checkmark_shield, isDark, context, hint: 'Optional'),
+      ],
+    ], isDark, context);
+  }
+
         });
       }, isDark),
       _buildHeaderTypeDropdown(isDark),

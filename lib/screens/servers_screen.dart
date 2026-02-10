@@ -706,32 +706,313 @@ class _ServersScreenState extends State<ServersScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [const Color(0xFF1C1C1E), Colors.black]
-              : [const Color(0xFFF2F2F7), Colors.white],
-        ),
-      ),
+      color: theme.scaffoldBackgroundColor,
       child: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            _buildHeader(isDark),
+            _buildHeader(isDark, context),
             if (_subscriptions.isNotEmpty && _tabController != null)
-              _buildTabBar(isDark),
+              _buildTabBar(isDark, context),
             _buildSearchBar(isDark),
-            Expanded(child: _buildServerList(isDark)),
+            Expanded(child: _buildServerList(isDark, context)),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildHeader(bool isDark, BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Servers',
+            style: TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          ),
+          Row(
+            children: [
+              _buildIconButton(CupertinoIcons.add_circled, _showManualAddDialog, isDark, context),
+              _buildIconButton(CupertinoIcons.doc_on_clipboard, _importFromClipboard, isDark, context),
+              _buildIconButton(CupertinoIcons.doc_text, _importWireGuardFile, isDark, context, tooltip: 'WireGuard File'),
+              _buildIconButton(CupertinoIcons.qrcode_viewfinder, _scanQRCode, isDark, context),
+              _buildIconButton(CupertinoIcons.wand_stars, _autoSelectBestServer, isDark, context, tooltip: 'Auto Select'),
+              _isSorting
+                  ? const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: CupertinoActivityIndicator(),
+                    )
+                  : _buildIconButton(CupertinoIcons.sort_down, _pingAllServers, isDark, context),
+              _buildIconButton(CupertinoIcons.refresh, _loadConfigs, isDark, context),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconButton(IconData icon, VoidCallback onTap, bool isDark, BuildContext context, {String? tooltip}) {
+    final theme = Theme.of(context);
+    final button = GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          icon,
+          size: 22,
+          color: theme.primaryColor,
+        ),
+      ),
+    );
+
+    if (tooltip != null) {
+      return Tooltip(
+        message: tooltip,
+        child: button,
+      );
+    }
+
+    return button;
+  }
+
+  Widget _buildTabBar(bool isDark, BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: AppTheme.iosCardDecoration(isDark: isDark, context: context),
+      child: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        indicator: BoxDecoration(
+          color: theme.primaryColor.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        labelColor: theme.primaryColor,
+        unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
+        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        dividerColor: Colors.transparent,
+        padding: const EdgeInsets.all(4),
+        indicatorPadding: const EdgeInsets.symmetric(horizontal: 4),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+        tabs: [
+          Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(CupertinoIcons.square_grid_2x2, size: 16),
+                const SizedBox(width: 6),
+                Text('All (${_configs.length})'),
+              ],
+            ),
+          ),
+          ..._subscriptions.map((sub) {
+            final count = _configs.where((c) => c.subscriptionId == sub.id).length;
+            return Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(CupertinoIcons.cloud_fill, size: 16),
+                  const SizedBox(width: 6),
+                  Text('${sub.name} ($count)'),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServerList(bool isDark, BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CupertinoActivityIndicator(radius: 16));
+    }
+    
+    if (_filteredConfigs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(CupertinoIcons.rectangle_stack, size: 64, color: AppTheme.systemGray),
+            const SizedBox(height: 16),
+            Text(
+              _currentSubscriptionId != null ? 'No servers in this subscription' : 'No servers found',
+              style: TextStyle(fontSize: 18, color: isDark ? Colors.white : Colors.black),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _currentSubscriptionId != null ? 'Update subscription to fetch servers' : 'Add servers from Subscriptions',
+              style: TextStyle(fontSize: 14, color: AppTheme.systemGray),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+      children: [
+        if (_currentSubscriptionId == null) ...[
+          if (_manualConfigs.isNotEmpty) ...[
+            _buildSectionHeader('Manual Configs', _manualConfigs.length, CupertinoIcons.pencil, isDark, context),
+            ..._manualConfigs.map((c) => _buildServerCard(c, isDark, context)),
+            const SizedBox(height: 24),
+          ],
+          if (_subscriptionConfigs.isNotEmpty) ...[
+            _buildSectionHeader('Subscription Configs', _subscriptionConfigs.length, CupertinoIcons.cloud_download, isDark, context),
+            ..._subscriptionConfigs.map((c) => _buildServerCard(c, isDark, context)),
+          ],
+        ] else ...[
+          ..._filteredConfigs.map((c) => _buildServerCard(c, isDark, context)),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, int count, IconData icon, bool isDark, BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, top: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: theme.primaryColor),
+          const SizedBox(width: 8),
+          Text(
+            '$title ($count)',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServerCard(V2RayConfig config, bool isDark, BuildContext context) {
+    final ping = _pingResults[config.id];
+    final service = Provider.of<V2RayService>(context, listen: false);
+    final isConnected = service.activeConfig?.id == config.id;
+    final isSelected = _selectedConfigId == config.id;
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: isConnected ? null : () => _handleSelectConfig(config),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: AppTheme.iosCardDecoration(isDark: isDark, context: context).copyWith(
+          border: isSelected && !isConnected
+              ? Border.all(color: theme.primaryColor, width: 2)
+              : (isConnected ? Border.all(color: AppTheme.connectedGreen, width: 2) : null),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (isConnected)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.connectedGreen,
+                          ),
+                        ),
+                      Expanded(
+                        child: Text(
+                          config.remark,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${config.address}:${config.port}',
+                    style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      color: theme.primaryColor.withOpacity(0.1),
+                    ),
+                    child: Text(
+                      config.protocolDisplay,
+                      style: TextStyle(fontSize: 10, color: theme.primaryColor, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            _buildPingBadge(ping),
+            _buildActionButtons(config, isDark, context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(V2RayConfig config, bool isDark, BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: () => _editConfig(config),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(CupertinoIcons.pencil, size: 20, color: theme.primaryColor),
+          ),
+        ),
+        GestureDetector(
+          onTap: () => _pingSingleServer(config),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(CupertinoIcons.speedometer, size: 20, color: theme.primaryColor),
+          ),
+        ),
+        GestureDetector(
+          onTap: () => _showOptionsSheet(config),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(CupertinoIcons.ellipsis, size: 20, color: AppTheme.systemGray),
+          ),
+        ),
+      ],
+    );
+  }
+
 
   Widget _buildHeader(bool isDark) {
     return Padding(

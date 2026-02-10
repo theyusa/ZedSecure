@@ -95,7 +95,12 @@ class AppTheme {
     double borderRadius = 24,
     bool isDark = true,
     Color? glowColor,
+    BuildContext? context,
   }) {
+    final bgColor = context != null 
+        ? Theme.of(context).scaffoldBackgroundColor 
+        : (isDark ? Colors.black : systemGray6);
+
     return BoxDecoration(
       borderRadius: BorderRadius.circular(borderRadius),
       color: isDark 
@@ -140,10 +145,22 @@ class AppTheme {
     );
   }
 
-  static BoxDecoration iosCardDecoration({bool isDark = true}) {
+  static BoxDecoration iosCardDecoration({bool isDark = true, BuildContext? context}) {
+    final Color bgColor;
+    if (context != null) {
+      final theme = Theme.of(context);
+      if (theme.scaffoldBackgroundColor == Colors.black) {
+        bgColor = const Color(0xFF1C1C1E);
+      } else {
+        bgColor = theme.colorScheme.surface;
+      }
+    } else {
+      bgColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    }
+
     return BoxDecoration(
       borderRadius: BorderRadius.circular(12),
-      color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+      color: bgColor,
     );
   }
 

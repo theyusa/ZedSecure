@@ -72,33 +72,207 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [const Color(0xFF1C1C1E), Colors.black]
-              : [const Color(0xFFF2F2F7), Colors.white],
-        ),
-      ),
+      color: theme.scaffoldBackgroundColor,
       child: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            _buildHeader(isDark),
+            _buildHeader(isDark, context),
             Expanded(
               child: _isLoading
                   ? const Center(child: CupertinoActivityIndicator(radius: 16))
-                  : _buildContent(isDark),
+                  : _buildContent(isDark, context),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildHeader(bool isDark, BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Subscriptions',
+            style: TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          ),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: _showAddSubscriptionDialog,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.primaryColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(CupertinoIcons.add, size: 18, color: Colors.white),
+                  SizedBox(width: 4),
+                  Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(bool isDark, BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+      children: [
+        if (_subscriptions.isNotEmpty) ...[
+          _buildSectionHeader('My Subscriptions', CupertinoIcons.cloud_fill, Theme.of(context).primaryColor, isDark),
+          ..._subscriptions.map((sub) => _buildSubscriptionCard(sub, isDark, context)),
+        ],
+        if (_subscriptions.isEmpty)
+          _buildEmptyState(isDark),
+      ],
+    );
+  }
+
+  Widget _buildSubscriptionCard(Subscription subscription, bool isDark, BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.iosCardDecoration(isDark: isDark, context: context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Icon(CupertinoIcons.cloud_fill, color: theme.primaryColor, size: 24),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      subscription.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${subscription.configCount} servers • ${_formatDate(subscription.lastUpdate)}',
+                      style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _updateSubscription(subscription),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(CupertinoIcons.refresh, size: 20, color: theme.primaryColor),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _deleteSubscription(subscription),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(CupertinoIcons.trash, size: 20, color: AppTheme.disconnectedRed),
+                ),
+              ),
+            ],
+          ),
+          if (subscription.hasTrafficInfo || subscription.hasExpireInfo) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                children: [
+                  if (subscription.hasTrafficInfo) ...[
+                    Row(
+                      children: [
+                        Icon(CupertinoIcons.arrow_up_arrow_down, size: 14, color: AppTheme.systemGray),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Traffic: ${_formatBytes(subscription.consumption)} / ${_formatBytes(subscription.total!)}',
+                          style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: subscription.ratio,
+                        backgroundColor: AppTheme.systemGray.withOpacity(0.2),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          subscription.ratio > 0.9 ? AppTheme.disconnectedRed : theme.primaryColor,
+                        ),
+                        minHeight: 6,
+                      ),
+                    ),
+                  ],
+                  if (subscription.hasTrafficInfo && subscription.hasExpireInfo)
+                    const SizedBox(height: 8),
+                  if (subscription.hasExpireInfo) ...[
+                    Row(
+                      children: [
+                        Icon(
+                          subscription.isExpired ? CupertinoIcons.exclamationmark_triangle_fill : CupertinoIcons.clock,
+                          size: 14,
+                          color: subscription.isExpired ? AppTheme.disconnectedRed : AppTheme.systemGray,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          subscription.isExpired
+                              ? 'Expired'
+                              : 'Expires in ${_formatDuration(subscription.remaining!)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: subscription.isExpired
+                                ? AppTheme.disconnectedRed
+                                : (isDark ? Colors.white70 : Colors.black87),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildHeader(bool isDark) {
     return Padding(

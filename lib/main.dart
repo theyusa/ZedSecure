@@ -48,24 +48,18 @@ class MyApp extends StatelessWidget {
           
           return MaterialApp(
             title: 'ZedSecure VPN',
-            themeMode: themeService.themeMode,
-            theme: AppTheme.lightTheme(),
-            darkTheme: AppTheme.darkTheme(),
+            theme: themeData,
             home: const MainNavigation(),
             debugShowCheckedModeBanner: false,
             builder: (context, child) {
-              return AnimatedTheme(
-                data: themeData,
-                duration: const Duration(milliseconds: 400),
-                child: AnnotatedRegion<SystemUiOverlayStyle>(
-                  value: SystemUiOverlayStyle(
-                    statusBarColor: Colors.transparent,
-                    statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-                    systemNavigationBarColor: Colors.transparent,
-                    systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-                  ),
-                  child: child!,
+              return AnnotatedRegion<SystemUiOverlayStyle>(
+                value: SystemUiOverlayStyle(
+                  statusBarColor: Colors.transparent,
+                  statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+                  systemNavigationBarColor: Colors.transparent,
+                  systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
                 ),
+                child: child!,
               );
             },
           );

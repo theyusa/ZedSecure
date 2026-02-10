@@ -64,18 +64,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [const Color(0xFF1C1C1E), Colors.black]
-              : [const Color(0xFFF2F2F7), Colors.white],
-        ),
-      ),
+      color: theme.scaffoldBackgroundColor,
       child: SafeArea(
         bottom: false,
         child: ListView(
@@ -115,7 +108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
                 isDark,
               ),
-            ], isDark),
+            ], isDark, context),
             const SizedBox(height: 20),
             _buildSection('Network', [
               _buildNavigationTile(
@@ -137,7 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 () => Navigator.push(context, CupertinoPageRoute(builder: (_) => const PerAppProxyScreen())),
                 isDark,
               ),
-            ], isDark),
+            ], isDark, context),
             const SizedBox(height: 20),
             _buildSection('Appearance', [
               Consumer<ThemeService>(
@@ -163,23 +156,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   );
                 },
               ),
-            ], isDark),
+            ], isDark, context),
             const SizedBox(height: 20),
             _buildSection('Data', [
               _buildActionTile('Backup Configs', 'Export all configs', CupertinoIcons.cloud_upload_fill, Colors.teal, _backupConfigs, isDark),
               _buildActionTile('Restore Configs', 'Import from backup', CupertinoIcons.cloud_download_fill, Colors.cyan, _restoreConfigs, isDark),
               _buildActionTile('Clear Cache', 'Clear cached data', CupertinoIcons.trash, Colors.orange, _clearCache, isDark),
               _buildActionTile('Clear All Data', 'Reset everything', CupertinoIcons.delete, AppTheme.disconnectedRed, _clearAllData, isDark),
-            ], isDark),
+            ], isDark, context),
             const SizedBox(height: 20),
-            _buildAboutSection(isDark),
+            _buildAboutSection(isDark, context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSection(String title, List<Widget> children, bool isDark) {
+  Widget _buildSection(String title, List<Widget> children, bool isDark, BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -196,10 +189,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-          ),
+          decoration: AppTheme.iosCardDecoration(isDark: isDark, context: context),
           child: Column(
             children: children.asMap().entries.map((entry) {
               final isLast = entry.key == children.length - 1;
@@ -317,7 +307,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildAboutSection(bool isDark) {
+  Widget _buildAboutSection(bool isDark, BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -329,10 +319,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-          ),
+          decoration: AppTheme.iosCardDecoration(isDark: isDark, context: context),
           child: _buildNavigationTile(
             'About ZedSecure',
             'Version 1.8.1 • Build 2026',

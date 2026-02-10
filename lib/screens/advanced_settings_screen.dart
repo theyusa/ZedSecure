@@ -17,11 +17,12 @@ class AdvancedSettingsScreen extends StatefulWidget {
 class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final service = Provider.of<AppSettingsService>(context);
     
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -55,7 +56,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               'Local DNS',
               'Enable local DNS server',
               CupertinoIcons.globe,
-              AppTheme.primaryBlue,
+              theme.primaryColor,
               service.localDnsEnabled,
               (value) async {
                 await service.setLocalDnsEnabled(value);
@@ -116,7 +117,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               isDark,
               hint: '1500',
             ),
-          ], isDark),
+          ], isDark, context),
           const SizedBox(height: 20),
           _buildSection('CORE SETTINGS', [
             _buildSwitchTile(
@@ -217,7 +218,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               },
               isDark,
             ),
-          ], isDark),
+          ], isDark, context),
           const SizedBox(height: 20),
           _buildSection('MUX & FRAGMENT', [
             _buildActionTile(
@@ -236,7 +237,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               () => _showFragmentDialog(service),
               isDark,
             ),
-          ], isDark),
+          ], isDark, context),
           const SizedBox(height: 20),
           _buildSection('SUBSCRIPTION', [
             _buildSwitchTile(
@@ -262,7 +263,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               isDark,
               hint: '24',
             ),
-          ], isDark),
+          ], isDark, context),
           const SizedBox(height: 20),
           _buildSection('TESTING', [
             _buildSwitchTile(
@@ -301,7 +302,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               isDark,
               hint: 'https://api.ipify.org',
             ),
-          ], isDark),
+          ], isDark, context),
           const SizedBox(height: 20),
           _buildSection('MODE', [
             _buildDropdownTile(
@@ -322,14 +323,14 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               (value) => service.setProxyOnlyMode(value),
               isDark,
             ),
-          ], isDark),
+          ], isDark, context),
           const SizedBox(height: 20),
           _buildSection('HEVTUN SETTINGS', [
             _buildSwitchTile(
               'Use HevTun',
               'HevTun tunnel (Always enabled)',
               CupertinoIcons.arrow_up_arrow_down_circle,
-              AppTheme.primaryBlue,
+              theme.primaryColor,
               true,
               (value) {},
               isDark,
@@ -353,14 +354,14 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               isDark,
               hint: '300,60',
             ),
-          ], isDark),
+          ], isDark, context),
           const SizedBox(height: 100),
         ],
       ),
     );
   }
 
-  Widget _buildSection(String title, List<Widget> children, bool isDark) {
+  Widget _buildSection(String title, List<Widget> children, bool isDark, BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -377,10 +378,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
           ),
         ),
         Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-          ),
+          decoration: AppTheme.iosCardDecoration(isDark: isDark, context: context),
           child: Column(
             children: children.asMap().entries.map((entry) {
               final isLast = entry.key == children.length - 1;
