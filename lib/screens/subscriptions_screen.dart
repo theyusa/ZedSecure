@@ -628,7 +628,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         context: context,
         title: 'Force Resolve',
         content: 'Update subscription to apply IP-based server names?',
-        leadingIcon: CupertinoIcons.cloud_refresh,
+        leadingIcon: CupertinoIcons.refresh,
         iconColor: theme.primaryColor,
         primaryButtonText: 'Update',
         secondaryButtonText: 'Cancel',

@@ -578,7 +578,7 @@ class V2RayService extends ChangeNotifier {
 
   Future<List<V2RayConfig>> parseSubscriptionContent(String content) async {
     try {
-      return await _parseContent(content, source: 'subscription', forceResolve: false);
+      return _parseContent(content, source: 'subscription', forceResolve: false);
     } catch (e) {
       debugPrint('Error parsing subscription content: $e');
       
@@ -851,7 +851,7 @@ class V2RayService extends ChangeNotifier {
     }
   }
 
-  Future<V2RayConfig?> _parseJsonConfig(Map<String, dynamic> configJson, String source, String? subscriptionId, bool forceResolve = false) async {
+  Future<V2RayConfig?> _parseJsonConfig(Map<String, dynamic> configJson, String source, String? subscriptionId, bool forceResolve) async {
     try {
       final remark = configJson['remarks'] ?? 'Config ${DateTime.now().millisecondsSinceEpoch}';
       
@@ -864,8 +864,9 @@ class V2RayService extends ChangeNotifier {
         
         for (var outbound in outbounds) {
           if (outbound is! Map) continue;
+          final outboundMap = Map<String, dynamic>.from(outbound);
           
-          final protocol = outbound['protocol']?.toString().toLowerCase() ?? '';
+          final protocol = outboundMap['protocol']?.toString().toLowerCase() ?? '';
           
           if (protocol == 'vmess' || protocol == 'vless' || 
               protocol == 'trojan' || protocol == 'shadowsocks' ||
@@ -874,8 +875,8 @@ class V2RayService extends ChangeNotifier {
             
             configType = protocol;
             
-            if (outbound['settings'] != null) {
-              final settings = outbound['settings'];
+            if (outboundMap['settings'] != null) {
+              final settings = outboundMap['settings'];
               
               if (protocol == 'vmess' || protocol == 'vless') {
                 if (settings['vnext'] is List && (settings['vnext'] as List).isNotEmpty) {
@@ -887,7 +888,7 @@ class V2RayService extends ChangeNotifier {
                     final resolvedIp = await _resolveHostname(address);
                     if (resolvedIp != null) {
                       vnext['address'] = resolvedIp;
-                      _preserveSniInJson(outbound, address);
+                      _preserveSniInJson(outboundMap, address);
                     }
                   }
                 }
@@ -902,7 +903,7 @@ class V2RayService extends ChangeNotifier {
                     final resolvedIp = await _resolveHostname(address);
                     if (resolvedIp != null) {
                       server['address'] = resolvedIp;
-                      _preserveSniInJson(outbound, address);
+                      _preserveSniInJson(outboundMap, address);
                     }
                   }
                 }
@@ -935,7 +936,7 @@ class V2RayService extends ChangeNotifier {
                     if (protocol == 'hysteria2') {
                       _preserveHysteria2Sni(settings, originalAddress);
                     } else {
-                      _preserveSniInJson(outbound, originalAddress);
+                      _preserveSniInJson(outboundMap, originalAddress);
                     }
                   }
                 }
