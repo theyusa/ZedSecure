@@ -378,6 +378,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   Future<void> _showAddSubscriptionDialog() async {
     final nameController = TextEditingController();
     final urlController = TextEditingController();
+    bool forceResolve = false;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     await CustomGlassPopup.show(
@@ -385,57 +386,97 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       title: 'Add Subscription',
       leadingIcon: CupertinoIcons.add_circled_solid,
       iconColor: AppTheme.primaryBlue,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Name',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white70 : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          CupertinoTextField(
-            controller: nameController,
-            placeholder: 'My Subscription',
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark ? Colors.white12 : Colors.black12,
+      content: StatefulBuilder(
+        builder: (context, setDialogState) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Name',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Subscription URL',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white70 : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          CupertinoTextField(
-            controller: urlController,
-            placeholder: 'https://example.com/subscription',
-            padding: const EdgeInsets.all(14),
-            keyboardType: TextInputType.url,
-            maxLines: 3,
-            minLines: 1,
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark ? Colors.white12 : Colors.black12,
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: nameController,
+                placeholder: 'My Subscription',
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+              const SizedBox(height: 20),
+              Text(
+                'Subscription URL',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: urlController,
+                placeholder: 'https://example.com/subscription',
+                padding: const EdgeInsets.all(14),
+                keyboardType: TextInputType.url,
+                maxLines: 3,
+                minLines: 1,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Force Resolve',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Use IP address instead of domain name',
+                          style: TextStyle(fontSize: 12, color: AppTheme.systemGray),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CupertinoSwitch(
+                    value: forceResolve,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        forceResolve = value;
+                      });
+                    },
+                    activeColor: AppTheme.primaryBlue,
+                    trackColor: AppTheme.systemGray.withOpacity(0.3),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
       actions: [
         CupertinoButton(
@@ -458,7 +499,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           onPressed: () async {
             if (nameController.text.isEmpty || urlController.text.isEmpty) return;
             Navigator.pop(context);
-            await _addSubscription(nameController.text, urlController.text);
+            await _addSubscription(nameController.text, urlController.text, forceResolve);
           },
           child: const Text(
             'Add',
@@ -474,12 +515,12 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     urlController.dispose();
   }
 
-  Future<void> _addSubscription(String name, String url) async {
+  Future<void> _addSubscription(String name, String url, bool forceResolve) async {
     _showSnackBar('Loading', 'Fetching servers...');
     final service = Provider.of<V2RayService>(context, listen: false);
     try {
       final subscriptionId = DateTime.now().millisecondsSinceEpoch.toString();
-      final result = await service.parseSubscriptionUrl(url, subscriptionId: subscriptionId, forceResolve: false);
+      final result = await service.parseSubscriptionUrl(url, subscriptionId: subscriptionId, forceResolve: forceResolve);
       final configs = (result['configs'] as List).cast<V2RayConfig>();
       final subInfo = result['subInfo'] as Map<String, dynamic>?;
       
@@ -504,7 +545,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         download: subInfo?['download'] as int?,
         total: subInfo?['total'] as int?,
         expire: subInfo?['expire'] as DateTime?,
-        forceResolve: false,
+        forceResolve: forceResolve,
       );
       _subscriptions.add(subscription);
       await service.saveSubscriptions(_subscriptions);
